@@ -10,7 +10,7 @@ library(dendextend)
 library(Rtsne)
 library(likert)
 
-login_details <- readRDS("../formr_login")
+# login_details <- readRDS("../formr_login")
 
 formr_connect(
   email = login_details$email, #enter your elena email here (email = "yourname@live.ie")
