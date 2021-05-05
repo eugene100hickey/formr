@@ -13,8 +13,8 @@ library(likert)
 login_details <- readRDS("../formr_login")
 
 formr_connect(
-  email = login_details$email,
-  password = login_details$password
+  email = login_details$email, #enter your elena email here (email = "yourname@live.ie")
+  password = login_details$password # and the password here (password = "abcde12345")
 )
 
 
