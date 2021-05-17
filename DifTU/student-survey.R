@@ -9,8 +9,13 @@ library(cluster)
 library(dendextend)
 library(Rtsne)
 library(likert)
+library(showtext)
 
-# login_details <- readRDS("../formr_login")
+font_add_google("Lemonada", "Lemonada")
+
+showtext_auto()
+
+login_details <- readRDS("../formr_login")
 
 formr_connect(
   email = login_details$email, #enter your elena email here (email = "yourname@live.ie")
@@ -40,7 +45,14 @@ student <- student %>%
 #   names()
 
 student_info <- fromJSON(file = "data/StudentSurvey.json")[[2]][[1]]$survey_data[[2]]
+best_options <- list(`1` = "Best", 
+                     `2` = "Good", 
+                     `3` = "Neutral", 
+                     `4` = "Poor", 
+                     `5` = "Worst")
 
+student_info[45][[1]]$choices <- best_options
+student_info[82][[1]]$choices <- best_options
 student_info_names <- map_chr(1:length(student_info), function(x) student_info[x][[1]]$name)
 
 student_extract <- function(column){
@@ -155,29 +167,33 @@ student_model <- student %>%
 
 # https://slcladal.github.io/surveys.html#4_Visualizing_survey_data
 
-student_model[,19:24] %>%
+student_model %>%
+  select(FindInfo:Usepptword) %>% 
   rename("Work online with others" = Workonline,
          "Create a digital record/ portfolio of your learning" = Cr8DigPortfolio,
          "Find information online" = FindInfo,
          "Use an educational game or simulation learning" = Useeducationalgame,
          "Use a polling device / online quiz to give answers in class" = UsePolling,
          "Produce work in digital formats other than Word/PowerPoint" = Usepptword) %>% 
-  likert(grouping = student_model[,"Campus"]) %>% 
+  likert(grouping = student_model %>% pull(Years)) %>% 
   plot(ordered = F, wrap= 60, labeller = labels) + 
   labs(title = "As part of your course, how often do you…") +
-  theme(text = element_text(family = "Ink Free", size = 18),
+  theme(text = element_text(family = "Lemonada", size = 18),
         legend.title = element_blank())
 
-student_model[,8:12] %>%
+student_model %>% dplyr::filter(Gender %in% c("Female", "Male")) %>% 
+  select(Reference:AccessLectures) %>%
   rename("Manage links or references" = Reference,
          "Organise your study time" = StudyTimwe,
          "Make notes or recordings" = NotesT,
          "Access lecture notes or recorded lectures" = AccessLectures,
          "Look for extra resources not recommended by your lecturer" = AdditionalResources) %>% 
-  likert(grouping = student_model[,"Campus"]) %>% 
+  likert(grouping = student_model %>% 
+           dplyr::filter(Gender %in% c("Female", "Male")) %>% 
+           pull(Gender)) %>% 
   plot(ordered = F, wrap= 60, labeller = labels) + 
   labs(title = "In your own learning time, how often do you use digital tools or apps to…") +
-  theme(text = element_text(family = "Ink Free", size = 18),
+  theme(text = element_text(family = "Lemonada", size = 18),
         legend.title = element_blank())
 
 # Wed May  5 14:38:44 2021 ------------------------------

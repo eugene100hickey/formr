@@ -3,6 +3,7 @@
 # https://github.com/jhelvy/surveys-with-formr
 
 library(tidyverse)
+library(lubridate)
 library(formr)
 library(rjson)
 
@@ -11,7 +12,10 @@ formr_connect(
     password = "te3m8zWuCJXQqAZ"
 )
 
-staff <- formr_raw_results(survey_name = "StaffSurvey")
+staff <- formr_raw_results(survey_name = "StaffSurvey") %>% 
+  mutate(created = as_datetime(created)) %>% 
+  filter(created > as_date("2021-04-20"),
+         !is.na(session))
 # student <- formr_raw_results(survey_name = "StudentSurvey")
 
 staff_missing <- rowSums(is.na(staff))
@@ -25,8 +29,17 @@ staff <- staff %>%
          )
 
 staff_info <- fromJSON(file = "data/StaffSurvey.json")[[2]][[1]]$survey_data[[2]]
+best_options <- list(`1` = "Best", 
+                     `2` = "Good", 
+                     `3` = "Neutral", 
+                     `4` = "Poor", 
+                     `5` = "Worst")
+
+staff_info[41][[1]]$choices <- best_options
+staff_info[81][[1]]$choices <- best_options
 
 staff_info_names <- map_chr(1:98, function(x) staff_info[x][[1]]$name)
+
 
 staff_extract <- function(column){
   index <- which(staff_info_names == column)
@@ -87,12 +100,13 @@ z <- staff %>%
          Prefsforfuture = fun("Prefsforfuture"),
          WorkingPref = fun("WorkingPref"))
 
-z <- staff %>% 
-  mutate(Teaching = fun(quote(Teaching) %>% as.character),
-         Campus = 
-fun_quote <- function(Campus, as.character) {
-  fun(quote(Campus) %>% as.character)
-})
+write_csv(z, file = "data/staff-survey-tidy.csv")
 
-z <- staff %>% 
-  mutate(across(Teaching, function(x) {fun(quote(x) %>% as.character)}))
+# z <- staff %>% 
+#   mutate(Teaching = fun(quote(Teaching) %>% as.character),
+#          Campus = fun_quote <- function(Campus, as.character) {
+#   fun(quote(Campus) %>% as.character)
+# })
+# 
+# z <- staff %>% 
+#   mutate(across(Teaching, function(x) {fun(quote(x) %>% as.character)}))

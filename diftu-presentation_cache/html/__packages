@@ -1,0 +1,17 @@
+base
+xaringanthemer
+tidyverse
+ggplot2
+tibble
+tidyr
+readr
+purrr
+dplyr
+stringr
+forcats
+xtable
+likert
+sysfonts
+showtextdb
+showtext
+ggtext
