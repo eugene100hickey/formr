@@ -44,7 +44,7 @@ student <- student %>%
 #   pull(column) %>% 
 #   names()
 
-student_info <- fromJSON(file = "data/StudentSurvey.json")[[2]][[1]]$survey_data[[2]]
+student_info <- fromJSON(file = "../data/StudentSurvey.json")[[2]][[1]]$survey_data[[2]]
 best_options <- list(`1` = "Best", 
                      `2` = "Good", 
                      `3` = "Neutral", 
@@ -53,6 +53,10 @@ best_options <- list(`1` = "Best",
 
 student_info[45][[1]]$choices <- best_options
 student_info[82][[1]]$choices <- best_options
+student_info[104][[1]]$choices <- best_options
+student_info[105][[1]]$choices <- best_options
+student_info[106][[1]]$choices <- best_options
+student_info[107][[1]]$choices <- best_options
 student_info_names <- map_chr(1:length(student_info), function(x) student_info[x][[1]]$name)
 
 student_extract <- function(column){
@@ -141,6 +145,14 @@ student$file_storage <- sapply(1:nrow(student), function(x) {"4" %in% student$Ac
 student$recorded_lectures <- sapply(1:nrow(student), function(x) {"5" %in% student$AccessDL[[x]]})
 student$internet_training <- sapply(1:nrow(student), function(x) {"6" %in% student$AccessDL[[x]]})
 student$none_access <- sapply(1:nrow(student), function(x) {"7" %in% student$AccessDL[[x]]})
+
+student <- student %>% 
+  mutate(Support = ifelse(Support == "Family and Friends", 
+                          "Friends and family",
+                          Support),
+         Support = ifelse(Support == "Online video and resources", 
+                          "Online videos and resources",
+                          Support))
 
 student <- student %>% 
   select(-c(Device, AccessDL))
