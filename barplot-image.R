@@ -47,3 +47,4 @@ ggplot(img_df) +
   coord_fixed(expand = FALSE) +
   theme_void() +
   theme(legend.position = "none", plot.background = element_rect(fill = col_bg, color = NA))
+ggsave("images/belltower-barplot.png")

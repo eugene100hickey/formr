@@ -1,0 +1,26 @@
+---
+title: "New Question Graphs"
+author: "Eugene"
+date: "19/05/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = F, cache = F, message = F, warning = F)
+```
+
+```{r source, echo=F, cache = T}
+library(tidyverse)
+source("overall-comparison.R")
+```
+
+```{r q05}
+q05
+```
+ 
+---
+
+```{r q15}
+q15
+```
+

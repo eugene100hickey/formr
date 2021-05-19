@@ -1,12 +1,16 @@
 library(tidyverse)
 library(likert)
 library(showtext)
+library(ggtext)
 
-font_add_google("Neucha", "Neucha")
+font_add_google("Kalam", "my_font")
 
 showtext_auto()
 
-fill_colour <- "#881144"
+fill_colour <- "gray90"
+index_colour <- "#7DAF9C"
+diftu_colour <- "#C38964"
+font_colour <- "#093824"
 
 best_options <- list(`1` = "Best", 
                      `2` = "Good", 
@@ -15,16 +19,16 @@ best_options <- list(`1` = "Best",
                      `5` = "Worst")
 
 theme_set(theme_minimal())
-theme_update(text = element_text(family = "Neucha", size = 20),
+theme_update(text = element_text(family = "my_font", size = 20),
           legend.title = element_blank())
 
 student_index <- read_csv("../data/student-index-tidy.csv") %>% 
   select(Campus, everything()) %>% 
-  mutate(survey = "index")
+  mutate(survey = "INDex-2019")
 student_diftu <- read_csv("../data/student-diftu-tidy.csv") %>% 
   select(-c(Other, DTLkeep)) %>% 
   select(-c(QualityL:none_access)) %>% 
-  mutate(survey = "diftu")
+  mutate(survey = "DifTU-2021")
 student_diftu_devices <- read_csv("../data/student-diftu-tidy.csv") %>% 
   select(session, laptop:no_device) %>% 
   pivot_longer(cols = -session, 
@@ -91,38 +95,52 @@ student_model_2 <- student %>%
 
 
 # Question 5
-student_model %>% 
-  filter(survey == "diftu") %>% 
-  ggplot(aes(fct_infreq(Study), fill = survey)) + 
-  geom_bar(show.legend = F, position = "dodge") +
-  coord_flip() +
-  theme(axis.text.x = element_blank(),
-        axis.title = element_blank()) + 
-  scale_x_discrete(labels = scales::wrap_format(30)) +
+
+q05 <- student_model %>% 
+  filter(survey == "DifTU-2021") %>% 
+  mutate(Study = fct_infreq(Study)) %>% 
+  count(Study) %>% 
+  ggplot(aes(n, fct_rev(Study))) +
+  geom_col(fill = fill_colour, width = 0.8) +
+  geom_text(aes(label = glue::glue("{n}  ({round(n / sum(n) * 100, 0)} %)"), 
+                x = min(n/2)), 
+            size = 6, colour = font_colour,
+            family = "my_font",
+            fontface = "bold") +
+  scale_y_discrete(labels = scales::wrap_format(30)) +
   labs(title = "Q5. What area is your programme of study?") +
   theme(plot.title.position = "plot",
-        title = element_text(size = 30))
-ggsave("images/Q05.png")
+        title = element_text(size = 20),
+        axis.text.x = element_blank(),
+        axis.title = element_blank(),
+        axis.text.y = element_text(lineheight = 0.8),
+        panel.grid = element_blank())
+q05
 
 
 # Question 6
-student_model %>% 
-  filter(!is.na(Age), survey == "diftu") %>%
+q06 <- student_model %>%  
+  filter(survey == "DifTU-2021", !is.na(Age)) %>% 
   mutate(Age = glue::glue("{Age} years")) %>% 
-  ggplot(aes(fct_rev(Age), fill = survey)) + 
-  geom_bar(show.legend = F, position = "dodge") +
-  coord_flip() +
+  count(Age) %>% 
+  ggplot(aes(n, fct_rev(Age))) +
+  geom_col(fill = fill_colour, width = 0.8) +
+  geom_text(aes(label = glue::glue("{n}  ({round(n / sum(n) * 100, 0)} %)"), 
+                x = 100), 
+            size = 6, colour = font_colour,
+            family = "my_font",
+            fontface = "bold") +
   theme(axis.text.x = element_blank(),
         axis.title = element_blank()) + 
-  scale_x_discrete(labels = scales::wrap_format(30)) +
   labs(title = "Q6. How old are you?") +
   theme(plot.title.position = "plot",
         title = element_text(size = 30),
-        text = element_text(size = 24))
-ggsave("images/Q06.png")
+        text = element_text(size = 24),
+        panel.grid = element_blank())
+q06
 
 # Question 7
-student_model %>% 
+q07 <- student_model %>% 
   filter(!is.na(Gender)) %>% 
   ggplot(aes(fct_rev(Gender), fill = survey)) + 
   geom_bar(show.legend = F, position = "dodge") +
@@ -130,12 +148,11 @@ student_model %>%
   theme(axis.text.x = element_blank(),
         axis.title = element_blank()) + 
   scale_x_discrete(labels = scales::wrap_format(30)) +
-  labs(title = "Q7. What gender do you identify as?") +
+  scale_fill_manual(values = c(diftu_colour, index_colour)) +
+  labs(title = glue::glue("Q7. What gender do you identify as? (<i style = 'color:{index_colour};'>INDex-2019</i>, <i style = 'color:{diftu_colour};'>DifTU-2021</i>)")) +
   theme(plot.title.position = "plot",
-        title = element_text(size = 30),
-        text = element_text(size = 24))
-ggsave("images/Q07.png")
-
+        plot.title = element_markdown(size = 28))
+q07
 
 # Question 11
 student_diftu_devices <- read_csv("../data/student-diftu-tidy.csv") %>% 
@@ -153,18 +170,20 @@ student_diftu_devices <- read_csv("../data/student-diftu-tidy.csv") %>%
                                 other = "Other",
                                 no_device = "None of the above"))
 
-student_diftu_devices %>% 
-  ggplot(aes(fct_infreq(device) %>% fct_rev)) + 
-  geom_bar(show.legend = F, position = "dodge", fill = fill_colour) +
-  coord_flip() +
+q11 <- student_diftu_devices %>% 
+  mutate(device = fct_infreq(device)) %>% 
+  count(device) %>% 
+  ggplot(aes(n, fct_rev(device))) + 
+  geom_col(show.legend = F, position = "dodge", fill = fill_colour, width = 0.7) +
+  geom_text(aes(label = glue::glue("{n} ({round(n/nrow(student_diftu)*100, 0)} %)")), x = 200, colour = font_colour, family = "my_font", size = 6) +
   theme(axis.text.x = element_blank(),
-        axis.title = element_blank()) + 
-  scale_x_discrete(labels = scales::wrap_format(30)) +
-  labs(title = "Q11. Which of these personally-owned devices do you use to support your learning? (Choose all that apply)") +
+        axis.title = element_blank(),
+        panel.grid = element_blank()) + 
+  labs(title = "Q11. Which of these personally-owned devices do you use to support your learning?<br>(Choose all that apply)") +
   theme(plot.title.position = "plot",
-        title = element_text(size = 30),
-        text = element_text(size = 24)) 
-ggsave("images/Q11.png")
+        plot.title = element_markdown(size = 28),
+        text = element_text(size = 24))
+q11
 
 # Question 12
 likert <- student_model %>%
@@ -172,7 +191,7 @@ likert <- student_model %>%
   select(Reference:AccessLectures, survey) %>% 
   drop_na() 
 
-likert %>% 
+q12 <- likert %>% 
   select(Reference:AccessLectures) %>%
   rename("Manage links or references" = Reference,
          "Organise your study time" = StudyTimwe,
@@ -180,13 +199,13 @@ likert %>%
          "Access lecture notes or recorded lectures" = AccessLectures,
          "Look for extra resources not recommended by your lecturer" = AdditionalResources) %>% 
   likert(grouping = likert %>% pull(survey)) %>% 
-  plot(ordered = F, wrap= 60, labeller = labels) + 
+  plot(ordered = F, wrap= 60, labeller = labels, text.size = 5) + 
   labs(title = "Q12. In your own learning time, how often do you use digital tools or apps to…")
-ggsave("images/Q12.png")
+q12
 
 
 # Question 13
-read_csv("../data/student-diftu-tidy.csv") %>% 
+q13 <- read_csv("../data/student-diftu-tidy.csv") %>% 
   select(session, online:none_access) %>% 
   pivot_longer(cols = -session, 
                names_to = "access", 
@@ -200,16 +219,18 @@ read_csv("../data/student-diftu-tidy.csv") %>%
                                 recorded_lectures = "Recorded lectures",
                                 internet_training = "Internet-based skills training",
                                 none_access = "None of the above")) %>% 
-  ggplot(aes(fct_infreq(access) %>% fct_rev)) + 
-  geom_bar(show.legend = F, position = "dodge", fill = fill_colour) +
-  coord_flip() +
+  mutate(access = fct_infreq(access)) %>% 
+  count(access) %>% 
+  ggplot(aes(n, fct_rev(access))) + 
+  geom_col(show.legend = F, position = "dodge", fill = fill_colour, width = 0.7) +
+  geom_text(aes(label = glue::glue("{n} ({round(n/nrow(student_diftu)*100, 0)} %)")), x = 200, colour = font_colour, family = "my_font", size = 6) +
   theme(axis.text.x = element_blank(),
         axis.title = element_blank(),
-        plot.title.position = "plot") + 
-  scale_x_discrete(labels = scales::wrap_format(30)) + 
-  labs(title = "Q13. Which	of	these	do	you	have	access	to	at	your	institution whenever	you	need	them?	Tick	all	that apply")
-ggsave("images/Q13.png")
-
+        plot.title.position = "plot",
+        plot.title = element_markdown(),
+        panel.grid = element_blank()) + 
+  labs(title = "Q13. Which	of	these	do	you	have	access	to	at	your	institution whenever	you	need	them?<br>(Choose all that apply)")
+q13
 
 # Question 14
 likert <- student_model_2 %>%
@@ -218,36 +239,41 @@ likert <- student_model_2 %>%
   drop_na() %>% 
   mutate(DataPrivacy = fct_recode(DataPrivacy, Neutral = "Neutural"))
 
-likert %>% 
+q14 <- likert %>% 
   select(InstSupport:DataPrivacy) %>%
   rename("This institution supports me to use my own digital devices" = InstSupport,
          "I can access institution health and wellbeing services online" = InstHealth,
          "I can participate in student union / club / society activities online" = SocietyAccess,
          "This institution protects my data privacy" = DataPrivacy) %>% 
   likert(grouping = likert %>% pull(survey)) %>% 
-  plot(ordered = F, wrap= 60, labeller = labels) + 
+  plot(ordered = F, wrap= 100, labeller = labels, text.size = 5) + 
   labs(title = "Q14. How much do you agree with the following statements?")
-ggsave("images/Q14.png")
+
+q14
 
 # Question 15
-student %>% 
+q15 <- student_model %>% 
   filter(!is.na(Support)) %>% 
-  ggplot(aes(Support, fill = survey)) +
-  geom_bar(show.legend = F, position = "dodge", aes(y = (..count..)/sum(..count..))) +
-  geom_text(aes(group = survey,
-                label = scales::percent((..count..)/sum(..count..)),
-                y = (..count..)/sum(..count..)), 
-            stat= "count", 
-            hjust = -.5,
-            position = position_dodge(width = 1)) +
-  coord_flip() +
+  mutate(Support = fct_infreq(Support)) %>% 
+  count(Support, survey) %>% 
+  group_by(survey) %>%
+  mutate(percentage = round(n/sum(n)*100, 0)) %>%
+  ungroup() %>% 
+  ggplot(aes(n, fct_rev(Support), fill = fct_rev(survey))) +
+  geom_col(width = 0.8, position = "dodge", show.legend = F) +
+  scale_fill_manual(values = c(index_colour, diftu_colour)) +
+  geom_text(aes(label = glue::glue("{n}  ({percentage} %)"), 
+                x = 50), 
+            size = 6, colour = font_colour,
+            family = "my_font", 
+            position = position_dodge(width = 0.7),
+            fontface = "bold") +
   theme(axis.title = element_blank(),
         axis.text.x = element_blank()) +
-  labs(title = "Q15. Who supports you most to use digital technology in your learning?") +
-  theme(plot.title.position = "plot")
-ggsave("images/Q15.png")
-
-
+  labs(title = glue::glue("Q15. Who supports you most to use digital technology in your learning? (<i style = 'color:{diftu_colour};'>DifTU-2021</i>, <i style = 'color:{index_colour};'>INDex-2019</i>)")) +
+  theme(plot.title.position = "plot",
+        plot.title = element_markdown())
+q15
 # https://slcladal.github.io/surveys.html#4_Visualizing_survey_data
 
 
@@ -257,7 +283,7 @@ likert <- student_model %>%
   select(FindInfo:Usepptword, survey) %>% 
   drop_na() 
 
-likert %>% 
+q17 <- likert %>% 
   select(FindInfo:Usepptword) %>% 
   rename("Work online with others" = Workonline,
          "Create a digital record/ portfolio of your learning" = Cr8DigPortfolio,
@@ -266,9 +292,9 @@ likert %>%
          "Use a polling device / online quiz to give answers in class" = UsePolling,
          "Produce work in digital formats other than Word/PowerPoint" = Usepptword) %>% 
   likert(grouping = likert %>% pull(survey)) %>% 
-  plot(ordered = F, wrap= 60, labeller = labels) + 
+  plot(ordered = F, wrap= 60, labeller = labels, text.size = 5) + 
   labs(title = "Q17. As part of your course, how often do you…") 
-ggsave("images/Q17.png")
+q17
 
 
 
@@ -278,16 +304,16 @@ likert <- student_model_2 %>%
   select(VLEeasyuse:Vleusebylecturers, survey) %>% 
   drop_na() 
 
-likert %>% 
+q18 <- likert %>% 
   select(VLEeasyuse:Vleusebylecturers) %>%
   rename("I can easily find things on the VLE" = VLEeasyuse,
          "I rely on it to do my coursework" = Vlereliable,
          "I regularly access it on a mobile device" = Vlemobile,
          "I would like it to be used more by my tutors/instructors" = Vleusebylecturers) %>% 
   likert(grouping = likert %>% pull(survey)) %>% 
-  plot(ordered = F, wrap= 60, labeller = labels) + 
+  plot(ordered = F, wrap= 60, labeller = labels, text.size = 5) + 
   labs(title = "Q18. How much do you agree with the following statements?")
-ggsave("images/Q18.png")
+q18
 
 
 # Question 19
@@ -296,16 +322,16 @@ likert <- student_model_2 %>%
   select(Onlineassesments:PersoalDataStorage, survey) %>% 
   drop_na() 
 
-likert %>% 
+q19 <- likert %>% 
   select(Onlineassesments:PersoalDataStorage) %>%
   rename("Online assessments are delivered and managed well" = Onlineassesments,
          "Teaching spaces are well designed for the technologies we use" = GoodTeachingSpaces,
          "The software used on my course is industry standard and up-to-date" = RelevantSoftware,
          "I am told how my personal data is stored and used" = PersoalDataStorage) %>% 
   likert(grouping = likert %>% pull(survey)) %>% 
-  plot(ordered = F, wrap= 60, labeller = labels) + 
+  plot(ordered = F, wrap= 100, labeller = labels, text.size = 5) + 
   labs(title = "Q19. How much do you agree with the following statements?")
-ggsave("images/Q19.png")
+q19
 
 
 # Question 20
@@ -314,7 +340,7 @@ likert <- student_model_2 %>%
   select(DigitalSkill4Jobs:InvolinDskillsdecisions, survey) %>% 
   drop_na() 
 
-likert %>% 
+q20 <- likert %>% 
   select(DigitalSkill4Jobs:InvolinDskillsdecisions) %>%
   rename("Before I started my course I was told what digital skills I would need" = DigitalSkill4Jobs,
          "I have regular opportunities to review and update my digital skills" = Opp2updateDSkills,
@@ -322,10 +348,9 @@ likert %>%
          "My course prepares me for the digital workplace" = Dworkplaceprep,
          "Learners are given the chance to be involved in decisions about digital services" = InvolinDskillsdecisions) %>% 
   likert(grouping = likert %>% pull(survey)) %>% 
-  plot(ordered = F, wrap= 60, labeller = labels) + 
+  plot(ordered = F, wrap= 100, labeller = labels, text.size = 5) + 
   labs(title = "Q20. How much do you agree with the following statements?")
-ggsave("images/Q20.png") 
-
+q20
 
 # Question 24
 likert <- student_model_2 %>%
@@ -333,14 +358,13 @@ likert <- student_model_2 %>%
   select(BetterUndertstanding:Fitseasily, survey) %>% 
   drop_na() 
 
-likert %>% 
+q24 <- likert %>% 
   select(BetterUndertstanding:Fitseasily) %>%
   rename("I understand things better" = BetterUndertstanding,
          "I enjoy learning more" = Enjoymore,
          "I am more independent in my learning" = Independent,
          "I can fit learning into my life more easily" = Fitseasily) %>% 
   likert(grouping = likert %>% pull(survey)) %>% 
-  plot(ordered = F, wrap= 60, labeller = labels) + 
+  plot(ordered = F, wrap= 60, labeller = labels, text.size = 5) + 
   labs(title = "Q24. When digital technologies are used on my course ...")
-ggsave("images/Q24.png")
-
+q24
