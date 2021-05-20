@@ -266,9 +266,9 @@ q15 <- student_model %>%
   mutate(percentage = round(n/sum(n)*100, 0),
          survey = fct_rev(survey)) %>%
   ungroup() %>% 
-  ggplot(aes(percentage, fct_rev(Support), fill = fct_rev(survey))) +
+  ggplot(aes(percentage, fct_rev(Support), fill = survey)) +
   geom_col(width = 0.8, position = "dodge", show.legend = F) +
-  scale_fill_manual(values = c(index_colour, diftu_colour)) +
+  scale_fill_manual(values = c(diftu_colour, index_colour)) +
   geom_text(aes(label = glue::glue("{n}  ({percentage} %)"), 
                 x = 5), 
             size = 6, colour = font_colour,
@@ -277,7 +277,7 @@ q15 <- student_model %>%
             fontface = "bold") +
   theme(axis.title = element_blank(),
         axis.text.x = element_blank()) +
-  labs(title = glue::glue("Q15. Who supports you most to use digital technology in your learning?<br>(<i style = 'color:{diftu_colour};'>DifTU-2021</i>, <i style = 'color:{index_colour};'>INDex-2019</i>)")) +
+  labs(title = glue::glue("Q15. Who supports you most to use digital technology in your learning?<br>(<i style = 'color:{index_colour};'>INDex-2019</i>, <i style = 'color:{diftu_colour};'>DifTU-2021</i>)")) +
   theme(plot.title.position = "plot",
         plot.title = element_markdown())
 q15

@@ -7,9 +7,11 @@ library(lubridate)
 library(formr)
 library(rjson)
 
+login_details <- readRDS("../formr_login")
+
 formr_connect(
-  email = "elena135@live.ie",
-    password = "te3m8zWuCJXQqAZ"
+  email = login_details$email, #enter your elena email here (email = "yourname@live.ie")
+  password = login_details$password # and the password here (password = "abcde12345")
 )
 
 staff <- formr_raw_results(survey_name = "StaffSurvey") %>% 
@@ -28,7 +30,7 @@ staff <- staff %>%
          approachtoTech = approachtoTech %>% str_replace("<h5>.*?>", "") %>% str_replace("<.*", "") %>% str_trim()
          )
 
-staff_info <- fromJSON(file = "data/StaffSurvey.json")[[2]][[1]]$survey_data[[2]]
+staff_info <- fromJSON(file = "../data/StaffSurvey.json")[[2]][[1]]$survey_data[[2]]
 best_options <- list(`1` = "Best", 
                      `2` = "Good", 
                      `3` = "Neutral", 
@@ -100,7 +102,7 @@ z <- staff %>%
          Prefsforfuture = fun("Prefsforfuture"),
          WorkingPref = fun("WorkingPref"))
 
-write_csv(z, file = "data/staff-survey-tidy.csv")
+write_csv(z, file = "../data/staff-survey-tidy.csv")
 
 # z <- staff %>% 
 #   mutate(Teaching = fun(quote(Teaching) %>% as.character),
