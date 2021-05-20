@@ -3,14 +3,17 @@ library(likert)
 library(showtext)
 library(ggtext)
 
-font_add_google("Kalam", "my_font")
+font_add_google("Tillana", "my_font")
 
 showtext_auto()
 
-fill_colour <- "gray90"
+fill_colour <- "gray80"
 index_colour <- "#7DAF9C"
+index_colour <- "#B2CEDE"
 diftu_colour <- "#C38964"
 font_colour <- "#093824"
+font_colour <- "gray20"
+font_colour <- "#095D6B"
 
 best_options <- list(`1` = "Best", 
                      `2` = "Good", 
@@ -20,11 +23,12 @@ best_options <- list(`1` = "Best",
 
 theme_set(theme_minimal())
 theme_update(text = element_text(family = "my_font", size = 20),
-          legend.title = element_blank())
+             legend.title = element_blank(),
+             axis.text.y = element_text(colour = font_colour))
 
 student_index <- read_csv("../data/student-index-tidy.csv") %>% 
   select(Campus, everything()) %>% 
-  mutate(survey = "INDex-2019")
+  mutate(survey = "INDEx-2019")
 student_diftu <- read_csv("../data/student-diftu-tidy.csv") %>% 
   select(-c(Other, DTLkeep)) %>% 
   select(-c(QualityL:none_access)) %>% 
@@ -200,7 +204,9 @@ q12 <- likert %>%
          "Look for extra resources not recommended by your lecturer" = AdditionalResources) %>% 
   likert(grouping = likert %>% pull(survey)) %>% 
   plot(ordered = F, wrap= 60, labeller = labels, text.size = 5) + 
-  labs(title = "Q12. In your own learning time, how often do you use digital tools or apps to…")
+  labs(title = toupper("Q12. In your own learning time, how often do you use digital tools or apps to…")) +
+  theme(plot.title.position = "plot",
+        plot.title = element_text(size = 20))
 q12
 
 
@@ -257,20 +263,21 @@ q15 <- student_model %>%
   mutate(Support = fct_infreq(Support)) %>% 
   count(Support, survey) %>% 
   group_by(survey) %>%
-  mutate(percentage = round(n/sum(n)*100, 0)) %>%
+  mutate(percentage = round(n/sum(n)*100, 0),
+         survey = fct_rev(survey)) %>%
   ungroup() %>% 
-  ggplot(aes(n, fct_rev(Support), fill = fct_rev(survey))) +
+  ggplot(aes(percentage, fct_rev(Support), fill = fct_rev(survey))) +
   geom_col(width = 0.8, position = "dodge", show.legend = F) +
   scale_fill_manual(values = c(index_colour, diftu_colour)) +
   geom_text(aes(label = glue::glue("{n}  ({percentage} %)"), 
-                x = 50), 
+                x = 5), 
             size = 6, colour = font_colour,
             family = "my_font", 
             position = position_dodge(width = 0.7),
             fontface = "bold") +
   theme(axis.title = element_blank(),
         axis.text.x = element_blank()) +
-  labs(title = glue::glue("Q15. Who supports you most to use digital technology in your learning? (<i style = 'color:{diftu_colour};'>DifTU-2021</i>, <i style = 'color:{index_colour};'>INDex-2019</i>)")) +
+  labs(title = glue::glue("Q15. Who supports you most to use digital technology in your learning?<br>(<i style = 'color:{diftu_colour};'>DifTU-2021</i>, <i style = 'color:{index_colour};'>INDex-2019</i>)")) +
   theme(plot.title.position = "plot",
         plot.title = element_markdown())
 q15
