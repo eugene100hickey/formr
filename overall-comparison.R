@@ -68,8 +68,45 @@ student_index_devices <- read_csv("../data/student-index-devices.csv") %>%
   mutate(survey = "INDEx-2019",
          number_students = nrow(student_index))
 
+student_diftu_access <- read_csv("../data/student-diftu-tidy.csv") %>% 
+  select(session, online:none_access) %>% 
+  pivot_longer(cols = -session, 
+               names_to = "access", 
+               values_to = "possesses") %>% 
+  filter(possesses) %>% 
+  mutate(access = recode_factor(access,
+                                online = "Online course materials",
+                                wifi = "Reliable Wi-Fi",
+                                e_books = "e-books and e-journals",
+                                file_storage = "File storage and back-up",
+                                recorded_lectures = "Recorded lectures",
+                                internet_training = "Internet-based skills training",
+                                none_access = "None of the above"))%>% 
+  mutate(survey = "DifTU-2021",
+         number_students = nrow(student_diftu))
+
+  student_index_access <- read_csv("../data/student-index-access.csv") %>% 
+  select(session, wifi:none_access) %>% 
+  pivot_longer(cols = -session, 
+               names_to = "access", 
+               values_to = "possesses") %>% 
+  filter(possesses) %>% 
+  mutate(access = recode_factor(access,
+                                online = "Online course materials",
+                                wifi = "Reliable Wi-Fi",
+                                e_books = "e-books and e-journals",
+                                file_storage = "File storage and back-up",
+                                recorded_lectures = "Recorded lectures",
+                                internet_training = "Internet-based skills training",
+                                none_access = "None of the above"))%>% 
+  mutate(survey = "INDEx-2019",
+         number_students = nrow(student_index))
+
+
+
 student <- bind_rows(student_diftu, student_index)
 student_devices <- bind_rows(student_diftu_devices, student_index_devices)
+student_access <- bind_rows(student_diftu_access, student_index_access)
 
 
 student_model <- student %>% 
@@ -304,31 +341,28 @@ q12
 
 
 # Question 13
-q13 <- read_csv("../data/student-diftu-tidy.csv") %>% 
-  select(session, online:none_access) %>% 
-  pivot_longer(cols = -session, 
-               names_to = "access", 
-               values_to = "possesses") %>% 
-  filter(possesses) %>% 
-  mutate(access = recode_factor(access,
-                                online = "Online course materials",
-                                wifi = "Reliable Wi-Fi",
-                                e_books = "e-books and e-journals",
-                                file_storage = "File storage and back-up",
-                                recorded_lectures = "Recorded lectures",
-                                internet_training = "Internet-based skills training",
-                                none_access = "None of the above")) %>% 
+q13 <- student_access %>% 
+  filter(!(access == "Other")) %>% 
   mutate(access = fct_infreq(access)) %>% 
-  count(access) %>% 
-  ggplot(aes(n, fct_rev(access))) + 
-  geom_col(show.legend = F, position = "dodge", fill = fill_colour, width = 0.7) +
-  geom_text(aes(label = glue::glue("{n} ({round(n/nrow(student_diftu)*100, 0)} %)")), x = 200, colour = font_colour, family = "my_font", size = 6) +
-  theme(axis.text.x = element_blank(),
-        axis.title = element_blank(),
-        plot.title.position = "plot",
-        plot.title = element_markdown(),
-        panel.grid = element_blank()) + 
-  labs(title = "Q13. Which	of	these	do	you	have	access	to	at	your	institution whenever	you	need	them?<br>(Choose all that apply)")
+  count(access, survey, number_students) %>% 
+  group_by(survey) %>%
+  mutate(percentage = round(n/number_students*100, 0),
+         survey = survey) %>%
+  ungroup() %>% 
+  ggplot(aes(percentage, fct_rev(access), fill = survey)) +
+  geom_col(width = 0.8, position = "dodge", show.legend = F) +
+  scale_fill_manual(values = c(diftu_colour, index_colour)) +
+  geom_text(aes(label = glue::glue("{n}  ({percentage} %)"), 
+                x = 10), 
+            size = 6, colour = font_colour,
+            family = "my_font", 
+            position = position_dodge(width = 0.7),
+            fontface = "bold") +
+  theme(axis.title = element_blank(),
+        axis.text.x = element_blank()) +
+  labs(title = glue::glue("Q13. Which of these do you have access to at your institution whenever you need them?<br>Tick all that apply. (<i style = 'color:{index_colour};'>INDex-2019</i>, <i style = 'color:{diftu_colour};'>DifTU-2021</i>)")) +
+  theme(plot.title.position = "plot",
+        plot.title = element_markdown())
 q13
 
 # Question 14

@@ -22,6 +22,19 @@ student$no_device <- sapply(1:nrow(student), function(x) {"None of the above" %i
 
 write_csv(student %>% select(session = unique_respo, laptop:no_device), "../data/student-index-devices.csv")
 
+student <- student %>% mutate(access = str_split(x13_which_of, pattern = ","))
+
+student$wifi <- sapply(1:nrow(student), function(x) {"Reliable WiFi" %in% student$access[[x]]})
+student$online <- sapply(1:nrow(student), function(x) {"Online course materials" %in% student$access[[x]]})
+student$file_storage <- sapply(1:nrow(student), function(x) {"File storage and back-up" %in% student$access[[x]]})
+student$e_books <- sapply(1:nrow(student), function(x) {"e-books and e-journals" %in% student$access[[x]]})
+student$recorded_lectures <- sapply(1:nrow(student), function(x) {"Recorded lectures" %in% student$access[[x]]})
+student$internet_training <- sapply(1:nrow(student), function(x) {"Internet-based skills training" %in% student$access[[x]]})
+student$none_access <- sapply(1:nrow(student), function(x) {"None of the above" %in% student$access[[x]]})
+
+write_csv(student %>% select(session = unique_respo, wifi:none_access), "../data/student-index-access.csv")
+
+
 student <- student %>% 
   mutate(x5_in_what_a = ifelse(x5_in_what_a == "Other", 
                                x5_a_if_you_, 
