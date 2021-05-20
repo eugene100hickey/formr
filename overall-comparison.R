@@ -24,7 +24,8 @@ best_options <- list(`1` = "Best",
 theme_set(theme_minimal())
 theme_update(text = element_text(family = "my_font", size = 20),
              legend.title = element_blank(),
-             axis.text.y = element_text(colour = font_colour))
+             axis.text.y = element_text(colour = font_colour),
+             plot.title.position = "plot")
 
 student_index <- read_csv("../data/student-index-tidy.csv") %>% 
   select(Campus, everything()) %>% 
@@ -46,9 +47,29 @@ student_diftu_devices <- read_csv("../data/student-diftu-tidy.csv") %>%
                                 desktop = "Desktop computer",
                                 tablet = "Tablet/iPad",
                                 other = "Other",
-                                no_device = "None of the above"))
+                                no_device = "None of the above")) %>% 
+  mutate(survey = "DifTU-2021",
+         number_students = nrow(student_diftu))
+
+student_index_devices <- read_csv("../data/student-index-devices.csv") %>% 
+  select(session, laptop:no_device) %>% 
+  pivot_longer(cols = -session, 
+               names_to = "device", 
+               values_to = "possesses") %>% 
+  filter(possesses) %>% 
+  mutate(device = recode_factor(device,
+                                laptop = "Laptop computer",
+                                smartphone = "Smartphone",
+                                printer = "Printer",
+                                desktop = "Desktop computer",
+                                tablet = "Tablet/iPad",
+                                other = "Other",
+                                no_device = "None of the above")) %>% 
+  mutate(survey = "INDEx-2019",
+         number_students = nrow(student_index))
 
 student <- bind_rows(student_diftu, student_index)
+student_devices <- bind_rows(student_diftu_devices, student_index_devices)
 
 
 student_model <- student %>% 
@@ -95,8 +116,33 @@ student_model_2 <- student %>%
          Independent = fct_relevel(Independent, levels = c("Agree", "Neutral", "Disagree")),
          Fitseasily = fct_relevel(Fitseasily, levels = c("Agree", "Neutral", "Disagree")),)
 
+# Question 2
 
-
+q02 <- student_model %>% 
+  filter(!is.na(Years)) %>% 
+  mutate(Years = Years %>% fct_recode("Less than 1 year" = "Less than a year",
+                                      "1 to 2 years" = "1-2 years",
+                                      "2 to 3 years" = "2-3 years")) %>% 
+  count(Years, survey) %>% 
+  group_by(survey) %>%
+  mutate(percentage = round(n/sum(n)*100, 0),
+         survey = fct_rev(survey)) %>%
+  ungroup() %>% 
+  ggplot(aes(percentage, fct_rev(Years), fill = survey)) +
+  geom_col(width = 0.8, position = "dodge", show.legend = F) +
+  scale_fill_manual(values = c(diftu_colour, index_colour)) +
+  geom_text(aes(label = glue::glue("{n}  ({percentage} %)"), 
+                x = 5), 
+            size = 6, colour = font_colour,
+            family = "my_font", 
+            position = position_dodge(width = 0.7),
+            fontface = "bold") +
+  theme(axis.title = element_blank(),
+        axis.text.x = element_blank()) +
+  labs(title = glue::glue("Q02. How many years have you studied at this institution?<br>(<i style = 'color:{index_colour};'>INDex-2019</i>, <i style = 'color:{diftu_colour};'>DifTU-2021</i>)")) +
+  theme(plot.title.position = "plot",
+        plot.title = element_markdown())
+q02
 
 # Question 5
 
@@ -158,35 +204,82 @@ q07 <- student_model %>%
         plot.title = element_markdown(size = 28))
 q07
 
-# Question 11
-student_diftu_devices <- read_csv("../data/student-diftu-tidy.csv") %>% 
-  select(session, laptop:no_device) %>% 
-  pivot_longer(cols = -session, 
-               names_to = "device", 
-               values_to = "possesses") %>% 
-  filter(possesses) %>% 
-  mutate(device = recode_factor(device,
-                                laptop = "Laptop computer",
-                                smartphone = "Smartphone",
-                                printer = "Printer",
-                                desktop = "Desktop computer",
-                                tablet = "Tablet/iPad",
-                                other = "Other",
-                                no_device = "None of the above"))
+# Question 8
 
-q11 <- student_diftu_devices %>% 
-  mutate(device = fct_infreq(device)) %>% 
-  count(device) %>% 
-  ggplot(aes(n, fct_rev(device))) + 
-  geom_col(show.legend = F, position = "dodge", fill = fill_colour, width = 0.7) +
-  geom_text(aes(label = glue::glue("{n} ({round(n/nrow(student_diftu)*100, 0)} %)")), x = 200, colour = font_colour, family = "my_font", size = 6) +
-  theme(axis.text.x = element_blank(),
-        axis.title = element_blank(),
-        panel.grid = element_blank()) + 
-  labs(title = "Q11. Which of these personally-owned devices do you use to support your learning?<br>(Choose all that apply)") +
+q08 <- student_model %>% 
+  filter(!is.na(LearningNeeds)) %>% 
+  mutate(LearningNeeds = ifelse(str_detect(LearningNeeds, "Yes"), "Yes", "No")) %>% 
+  count(LearningNeeds, survey) %>% 
+  group_by(survey) %>%
+  mutate(percentage = round(n/sum(n)*100, 0),
+         survey = fct_rev(survey)) %>%
+  ungroup() %>% 
+  ggplot(aes(percentage, LearningNeeds, fill = survey)) +
+  geom_col(width = 0.8, position = "dodge", show.legend = F) +
+  scale_fill_manual(values = c(diftu_colour, index_colour)) +
+  geom_text(aes(label = glue::glue("{n}  ({percentage} %)"), 
+                x = 8), 
+            size = 6, colour = font_colour,
+            family = "my_font", 
+            position = position_dodge(width = 0.7),
+            fontface = "bold") +
+  theme(axis.title = element_blank(),
+        axis.text.x = element_blank()) +
+  labs(title = glue::glue("Q08. Do you use any assistive technologies to meet your learning needs?<br>(e.g. screen readers, voicerecognition, switches)<br>(<i style = 'color:{index_colour};'>INDex-2019</i>, <i style = 'color:{diftu_colour};'>DifTU-2021</i>)")) +
   theme(plot.title.position = "plot",
-        plot.title = element_markdown(size = 28),
-        text = element_text(size = 24))
+        plot.title = element_markdown())
+q08
+
+# Question 9
+
+q09 <- student_model %>% 
+  filter(!is.na(LearningNeedmet)) %>% 
+  mutate(LearningNeeds = ifelse(str_detect(LearningNeedmet, "Yes"), "Yes", "No")) %>% 
+  count(LearningNeedmet, survey) %>% 
+  group_by(survey) %>%
+  mutate(percentage = round(n/sum(n)*100, 0),
+         survey = fct_rev(survey)) %>%
+  ungroup() %>% 
+  ggplot(aes(percentage, LearningNeedmet, fill = survey)) +
+  geom_col(width = 0.8, position = "dodge", show.legend = F) +
+  scale_fill_manual(values = c(diftu_colour, index_colour)) +
+  geom_text(aes(label = glue::glue("{n}  ({percentage} %)"), 
+                x = 8), 
+            size = 6, colour = font_colour,
+            family = "my_font", 
+            position = position_dodge(width = 0.7),
+            fontface = "bold") +
+  theme(axis.title = element_blank(),
+        axis.text.x = element_blank()) +
+  labs(title = glue::glue("Q09. f YES, has your institution provided you with any support with assistive technologies?<br>(<i style = 'color:{index_colour};'>INDex-2019</i>, <i style = 'color:{diftu_colour};'>DifTU-2021</i>)")) +
+  theme(plot.title.position = "plot",
+        plot.title = element_markdown())
+q09
+
+
+# Question 11
+q11 <- student_devices %>% 
+  filter(!(device == "Other")) %>% 
+  mutate(device = fct_infreq(device)) %>% 
+  count(device, survey, number_students) %>% 
+  group_by(survey) %>%
+  mutate(percentage = round(n/number_students*100, 0),
+         survey = survey) %>%
+  ungroup() %>% 
+  ggplot(aes(percentage, fct_rev(device), fill = survey)) +
+  geom_col(width = 0.8, position = "dodge", show.legend = F) +
+  scale_fill_manual(values = c(diftu_colour, index_colour)) +
+  geom_text(aes(label = glue::glue("{n}  ({percentage} %)"), 
+                x = 10), 
+            size = 6, colour = font_colour,
+            family = "my_font", 
+            position = position_dodge(width = 0.7),
+            fontface = "bold") +
+  theme(axis.title = element_blank(),
+        axis.text.x = element_blank()) +
+  labs(title = glue::glue("Q11. Which of these personally-owned devices do you use to support your learning?<br>(Choose all that apply) (<i style = 'color:{index_colour};'>INDex-2019</i>, <i style = 'color:{diftu_colour};'>DifTU-2021</i>)")) +
+  theme(plot.title.position = "plot",
+        plot.title = element_markdown())
 q11
 
 # Question 12
@@ -264,7 +357,7 @@ q15 <- student_model %>%
   count(Support, survey) %>% 
   group_by(survey) %>%
   mutate(percentage = round(n/sum(n)*100, 0),
-         survey = fct_rev(survey)) %>%
+         survey = survey) %>%
   ungroup() %>% 
   ggplot(aes(percentage, fct_rev(Support), fill = survey)) +
   geom_col(width = 0.8, position = "dodge", show.legend = F) +
@@ -283,6 +376,32 @@ q15 <- student_model %>%
 q15
 # https://slcladal.github.io/surveys.html#4_Visualizing_survey_data
 
+
+# Question 16
+likert <- student_model %>%
+  as.data.frame %>% 
+  select(DigitalExperience, survey) %>% 
+  mutate(DigitalExperience = recode_factor(DigitalExperience,
+                                           'Worst imaginable' = 'Worst',
+                                           'Best imaginable' = 'Best',
+                                           'Neutral' = 'Average'),
+         DigitalExperience = DigitalExperience %>% fct_relevel(c("Best", 
+                                                                 "Excellent",
+                                                                 "Good",
+                                                                 "Average",
+                                                                 "Poor",
+                                                                 "Awful",
+                                                                 "Worst"))) %>% 
+  drop_na() 
+
+q16 <- likert %>% 
+  select(DigitalExperience) %>% 
+  rename(" Overall, how would you rate the quality of this institution's digital provision\n(software, hardware,learning environment)?" = DigitalExperience) %>% 
+  likert(grouping = likert %>% pull(survey)) %>% 
+  plot(ordered = F, wrap= 100, labeller = labels, text.size = 5) + 
+  labs(title = "Q16.")  +
+  guides(fill = guide_legend(nrow = 1))
+q16
 
 # Question 17
 likert <- student_model %>%
@@ -359,6 +478,63 @@ q20 <- likert %>%
   labs(title = "Q20. How much do you agree with the following statements?")
 q20
 
+# Question 21
+likert <- student_model %>%
+  as.data.frame %>% 
+  select(DTeachingSkills, survey) %>% 
+  mutate(DTeachingSkills = recode_factor(DTeachingSkills,
+                                           'Worst imaginable' = 'Worst',
+                                           'Best imaginable' = 'Best',
+                                           'Neutral' = 'Average'),
+         DTeachingSkills = DTeachingSkills %>% fct_relevel(c("Best", 
+                                                                 "Excellent",
+                                                                 "Good",
+                                                                 "Average",
+                                                                 "Poor",
+                                                                 "Awful",
+                                                                 "Worst"))) %>% 
+  drop_na() 
+
+q21 <- likert %>% 
+  select(DTeachingSkills) %>% 
+  rename(" Overall, how would you rate the quality of digital teaching and learning on your course?" = DTeachingSkills) %>% 
+  likert(grouping = likert %>% pull(survey)) %>% 
+  plot(ordered = F, wrap= 100, labeller = labels, text.size = 5) + 
+  labs(title = "Q21.")  +
+  guides(fill = guide_legend(nrow = 1))
+q21
+
+# Question 23
+q23 <- student_model %>% 
+  select(Usefulresources, survey) %>% 
+  filter(!is.na(Usefulresources), !(Usefulresources == "Other")) %>% 
+  mutate(Usefulresources = Usefulresources %>% recode_factor("Course-related videos" = "... course-related videos",
+                                                             "Interactive polls/quizzes in class" = "... interactive polls/quizzes in class",
+                                                             "Proactive questions available online" = "... practice questions available online",
+                                                             "References and readings" = "... references and readings",
+                                                             "Time working online with other students" = "... time working online with other students")) %>% 
+  mutate(Usefulresources = fct_infreq(Usefulresources)) %>% 
+  count(Usefulresources, survey) %>% 
+  group_by(survey) %>%
+  mutate(percentage = round(n/sum(n)*100, 0),
+         survey = survey) %>%
+  ungroup() %>% 
+  ggplot(aes(percentage, fct_rev(Usefulresources), fill = survey)) +
+  geom_col(width = 0.8, position = "dodge", show.legend = F) +
+  scale_fill_manual(values = c(diftu_colour, index_colour)) +
+  geom_text(aes(label = glue::glue("{n}  ({percentage} %)"), 
+                x = 5), 
+            size = 6, colour = font_colour,
+            family = "my_font", 
+            position = position_dodge(width = 0.7),
+            fontface = "bold") +
+  theme(axis.title = element_blank(),
+        axis.text.x = element_blank()) +
+  labs(title = glue::glue("Q23. Which of these would be most useful to you as a learner? More ...<br>(<i style = 'color:{index_colour};'>INDex-2019</i>, <i style = 'color:{diftu_colour};'>DifTU-2021</i>)")) +
+  theme(plot.title.position = "plot",
+        plot.title = element_markdown())
+q23
+
 # Question 24
 likert <- student_model_2 %>%
   as.data.frame %>% 
@@ -375,3 +551,59 @@ q24 <- likert %>%
   plot(ordered = F, wrap= 60, labeller = labels, text.size = 5) + 
   labs(title = "Q24. When digital technologies are used on my course ...")
 q24
+
+# Question 25
+q25 <- student_model %>% 
+  select(LearningPref, survey) %>% 
+  filter(!is.na(LearningPref), !(LearningPref == "Other")) %>% 
+  mutate(LearningPref = LearningPref %>% recode_factor("I prefer learning on my own" = "I prefer to learn on my own")) %>% 
+  mutate(LearningPref = fct_infreq(LearningPref)) %>% 
+  count(LearningPref, survey) %>% 
+  group_by(survey) %>%
+  mutate(percentage = round(n/sum(n)*100, 0),
+         survey = survey) %>%
+  ungroup() %>% 
+  ggplot(aes(percentage, fct_rev(LearningPref), fill = survey)) +
+  geom_col(width = 0.8, position = "dodge", show.legend = F) +
+  scale_fill_manual(values = c(diftu_colour, index_colour)) +
+  geom_text(aes(label = glue::glue("{n}  ({percentage} %)"), 
+                x = 10), 
+            size = 6, colour = font_colour,
+            family = "my_font", 
+            position = position_dodge(width = 0.7),
+            fontface = "bold") +
+  theme(axis.title = element_blank(),
+        axis.text.x = element_blank()) +
+  labs(title = glue::glue("Q25. Which best describes your preferences as a learner?<br>(<i style = 'color:{index_colour};'>INDex-2019</i>, <i style = 'color:{diftu_colour};'>DifTU-2021</i>)")) +
+  theme(plot.title.position = "plot",
+        plot.title = element_markdown())
+q25
+
+
+# Question 26
+q26 <- student_model %>% 
+  select(Useful, survey) %>% 
+  filter(!is.na(Useful)) %>% 
+  mutate(Useful = Useful %>% recode_factor("More laptops and tablets available in class" = "More laptops/tablets available in class",
+                                           "More laptops and tablets available on long-term loan" = "More laptops/tablets on long-term loan.")) %>% 
+  mutate(Useful = fct_infreq(Useful)) %>% 
+  count(Useful, survey) %>% 
+  group_by(survey) %>%
+  mutate(percentage = round(n/sum(n)*100, 0),
+         survey = survey) %>%
+  ungroup() %>% 
+  ggplot(aes(percentage, fct_rev(Useful), fill = survey)) +
+  geom_col(width = 0.8, position = "dodge", show.legend = F) +
+  scale_fill_manual(values = c(diftu_colour, index_colour)) +
+  geom_text(aes(label = glue::glue("{n}  ({percentage} %)"), 
+                x = 10), 
+            size = 6, colour = font_colour,
+            family = "my_font", 
+            position = position_dodge(width = 0.7),
+            fontface = "bold") +
+  theme(axis.title = element_blank(),
+        axis.text.x = element_blank()) +
+  labs(title = glue::glue("Q26. Which of these would be most useful to you?<br>(<i style = 'color:{index_colour};'>INDex-2019</i>, <i style = 'color:{diftu_colour};'>DifTU-2021</i>)")) +
+  theme(plot.title.position = "plot",
+        plot.title = element_markdown())
+q26

@@ -3,12 +3,25 @@ library(readxl)
 library(lubridate)
 
 
-sheet_names <- excel_sheets("data/INDEx Survey Student Comments.xlsx")
+sheet_names <- excel_sheets("../data/INDEx Survey Student Comments.xlsx")
 
-student <- xlsx::read.xlsx(file = "data/INDEx Survey Student Comments.xlsx", 
+student <- xlsx::read.xlsx(file = "../data/INDEx Survey Student Comments.xlsx", 
                            sheetName = "Survey") %>% 
   janitor::clean_names()
 names(student) <- names(student) %>% str_sub(1, 12)
+
+student <- student %>% mutate(Device = str_split(x11_which_of, pattern = ","))
+
+student$laptop <- sapply(1:nrow(student), function(x) {"Laptop computer" %in% student$Device[[x]]})
+student$smartphone <- sapply(1:nrow(student), function(x) {"Smartphone" %in% student$Device[[x]]})
+student$printer <- sapply(1:nrow(student), function(x) {"Printer" %in% student$Device[[x]]})
+student$desktop <- sapply(1:nrow(student), function(x) {"Desktop computer" %in% student$Device[[x]]})
+student$tablet <- sapply(1:nrow(student), function(x) {"Tablet/iPad" %in% student$Device[[x]]})
+student$other <- sapply(1:nrow(student), function(x) {"6" %in% student$Device[[x]]})
+student$no_device <- sapply(1:nrow(student), function(x) {"None of the above" %in% student$Device[[x]]})
+
+write_csv(student %>% select(session = unique_respo, laptop:no_device), "../data/student-index-devices.csv")
+
 student <- student %>% 
   mutate(x5_in_what_a = ifelse(x5_in_what_a == "Other", 
                                x5_a_if_you_, 
