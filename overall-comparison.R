@@ -8,12 +8,9 @@ font_add_google("Tillana", "my_font")
 showtext_auto()
 
 fill_colour <- "gray80"
-index_colour <- "#7DAF9C"
-index_colour <- "#B2CEDE"
-diftu_colour <- "#C38964"
-font_colour <- "#093824"
-font_colour <- "gray20"
-font_colour <- "#095D6B"
+index_colour <- "#81A88D"
+diftu_colour <- "#F2300F"
+font_colour <- "#24281A"
 
 best_options <- list(`1` = "Best", 
                      `2` = "Good", 
@@ -29,7 +26,12 @@ theme_update(text = element_text(family = "my_font", size = 20),
 
 student_index <- read_csv("../data/student-index-tidy.csv") %>% 
   select(Campus, everything()) %>% 
-  mutate(survey = "INDEx-2019")
+  mutate(survey = "INDEx-2019",
+         Age = ifelse(Age == "18", "18-21", Age),
+         Age = ifelse(Age == "19 to 21", "18-21", Age),
+         Age = ifelse(Age == "22 to 24", "22-24", Age),
+         Age = ifelse(Age == "25 to 29", "25-29", Age),
+         Age = ifelse(Age == "30 plus", "30 +", Age))
 student_diftu <- read_csv("../data/student-diftu-tidy.csv") %>% 
   select(-c(Other, DTLkeep)) %>% 
   select(-c(QualityL:none_access)) %>% 
@@ -206,39 +208,53 @@ q05
 
 
 # Question 6
-q06 <- student_model %>%  
-  filter(survey == "DifTU-2021", !is.na(Age)) %>% 
+q06 <- student_model %>% 
+  filter(!is.na(Age)) %>% 
   mutate(Age = glue::glue("{Age} years")) %>% 
-  count(Age) %>% 
-  ggplot(aes(n, fct_rev(Age))) +
-  geom_col(fill = fill_colour, width = 0.8) +
-  geom_text(aes(label = glue::glue("{n}  ({round(n / sum(n) * 100, 0)} %)"), 
-                x = 100), 
+  count(Age, survey) %>% 
+  group_by(survey) %>%
+  mutate(percentage = round(n/sum(n)*100, 0),
+         Age = fct_rev(Age)) %>%
+  ungroup() %>% 
+  ggplot(aes(percentage, Age, fill = survey)) +
+  geom_col(width = 0.8, position = "dodge", show.legend = F) +
+  scale_fill_manual(values = c(diftu_colour, index_colour)) +
+  geom_text(aes(label = glue::glue("{n}  ({percentage} %)"), 
+                x = 5), 
             size = 6, colour = font_colour,
-            family = "my_font",
+            family = "my_font", 
+            position = position_dodge(width = 0.7),
             fontface = "bold") +
-  theme(axis.text.x = element_blank(),
-        axis.title = element_blank()) + 
-  labs(title = "Q6. How old are you?") +
+  theme(axis.title = element_blank(),
+        axis.text.x = element_blank()) +
+  labs(title = glue::glue("Q06. What age are you? (<i style = 'color:{index_colour};'>INDex-2019</i>, <i style = 'color:{diftu_colour};'>DifTU-2021</i>)")) +
   theme(plot.title.position = "plot",
-        title = element_text(size = 30),
-        text = element_text(size = 24),
-        panel.grid = element_blank())
+        plot.title = element_markdown())
 q06
+
 
 # Question 7
 q07 <- student_model %>% 
   filter(!is.na(Gender)) %>% 
-  ggplot(aes(fct_rev(Gender), fill = survey)) + 
-  geom_bar(show.legend = F, position = "dodge") +
-  coord_flip() +
-  theme(axis.text.x = element_blank(),
-        axis.title = element_blank()) + 
-  scale_x_discrete(labels = scales::wrap_format(30)) +
+  count(Gender, survey) %>% 
+  group_by(survey) %>%
+  mutate(percentage = round(n/sum(n)*100, 0),
+         survey = survey) %>%
+  ungroup() %>% 
+  ggplot(aes(percentage, fct_rev(Gender), fill = survey)) +
+  geom_col(width = 0.8, position = "dodge", show.legend = F) +
   scale_fill_manual(values = c(diftu_colour, index_colour)) +
-  labs(title = glue::glue("Q7. What gender do you identify as? (<i style = 'color:{index_colour};'>INDex-2019</i>, <i style = 'color:{diftu_colour};'>DifTU-2021</i>)")) +
+  geom_text(aes(label = glue::glue("{n}  ({percentage} %)"), 
+                x = 8), 
+            size = 6, colour = font_colour,
+            family = "my_font", 
+            position = position_dodge(width = 0.7),
+            fontface = "bold") +
+  theme(axis.title = element_blank(),
+        axis.text.x = element_blank()) +
+  labs(title = glue::glue("Q7. What gender do you identify as? (e.g. screen readers, voicerecognition, switches)<br>(<i style = 'color:{index_colour};'>INDex-2019</i>, <i style = 'color:{diftu_colour};'>DifTU-2021</i>)")) +
   theme(plot.title.position = "plot",
-        plot.title = element_markdown(size = 28))
+        plot.title = element_markdown())
 q07
 
 # Question 8
@@ -249,7 +265,7 @@ q08 <- student_model %>%
   count(LearningNeeds, survey) %>% 
   group_by(survey) %>%
   mutate(percentage = round(n/sum(n)*100, 0),
-         survey = fct_rev(survey)) %>%
+         survey = survey) %>%
   ungroup() %>% 
   ggplot(aes(percentage, LearningNeeds, fill = survey)) +
   geom_col(width = 0.8, position = "dodge", show.legend = F) +
@@ -275,7 +291,7 @@ q09 <- student_model %>%
   count(LearningNeedmet, survey) %>% 
   group_by(survey) %>%
   mutate(percentage = round(n/sum(n)*100, 0),
-         survey = fct_rev(survey)) %>%
+         survey = survey) %>%
   ungroup() %>% 
   ggplot(aes(percentage, LearningNeedmet, fill = survey)) +
   geom_col(width = 0.8, position = "dodge", show.legend = F) +
@@ -327,6 +343,7 @@ likert <- student_model %>%
 
 q12 <- likert %>% 
   select(Reference:AccessLectures) %>%
+  mutate_if(is.factor, fct_rev) %>% 
   rename("Manage links or references" = Reference,
          "Organise your study time" = StudyTimwe,
          "Make notes or recordings" = NotesT,
@@ -374,6 +391,7 @@ likert <- student_model_2 %>%
 
 q14 <- likert %>% 
   select(InstSupport:DataPrivacy) %>%
+  mutate_if(is.factor, fct_rev) %>% 
   rename("This institution supports me to use my own digital devices" = InstSupport,
          "I can access institution health and wellbeing services online" = InstHealth,
          "I can participate in student union / club / society activities online" = SocietyAccess,
@@ -426,10 +444,11 @@ likert <- student_model %>%
                                                                  "Poor",
                                                                  "Awful",
                                                                  "Worst"))) %>% 
-  drop_na() 
+  drop_na()
 
 q16 <- likert %>% 
   select(DigitalExperience) %>% 
+  mutate_if(is.factor, fct_rev) %>% 
   rename(" Overall, how would you rate the quality of this institution's digital provision\n(software, hardware,learning environment)?" = DigitalExperience) %>% 
   likert(grouping = likert %>% pull(survey)) %>% 
   plot(ordered = F, wrap= 100, labeller = labels, text.size = 5) + 
@@ -441,10 +460,11 @@ q16
 likert <- student_model %>%
   as.data.frame %>% 
   select(FindInfo:Usepptword, survey) %>% 
-  drop_na() 
+  drop_na()
 
 q17 <- likert %>% 
   select(FindInfo:Usepptword) %>% 
+  mutate_if(is.factor, fct_rev) %>% 
   rename("Work online with others" = Workonline,
          "Create a digital record/ portfolio of your learning" = Cr8DigPortfolio,
          "Find information online" = FindInfo,
@@ -462,10 +482,11 @@ q17
 likert <- student_model_2 %>%
   as.data.frame %>% 
   select(VLEeasyuse:Vleusebylecturers, survey) %>% 
-  drop_na() 
+  drop_na()
 
 q18 <- likert %>% 
   select(VLEeasyuse:Vleusebylecturers) %>%
+  mutate_if(is.factor, fct_rev) %>% 
   rename("I can easily find things on the VLE" = VLEeasyuse,
          "I rely on it to do my coursework" = Vlereliable,
          "I regularly access it on a mobile device" = Vlemobile,
@@ -480,10 +501,11 @@ q18
 likert <- student_model_2 %>%
   as.data.frame %>% 
   select(Onlineassesments:PersoalDataStorage, survey) %>% 
-  drop_na() 
+  drop_na()
 
 q19 <- likert %>% 
   select(Onlineassesments:PersoalDataStorage) %>%
+  mutate_if(is.factor, fct_rev) %>% 
   rename("Online assessments are delivered and managed well" = Onlineassesments,
          "Teaching spaces are well designed for the technologies we use" = GoodTeachingSpaces,
          "The software used on my course is industry standard and up-to-date" = RelevantSoftware,
@@ -502,6 +524,7 @@ likert <- student_model_2 %>%
 
 q20 <- likert %>% 
   select(DigitalSkill4Jobs:InvolinDskillsdecisions) %>%
+  mutate_if(is.factor, fct_rev) %>% 
   rename("Before I started my course I was told what digital skills I would need" = DigitalSkill4Jobs,
          "I have regular opportunities to review and update my digital skills" = Opp2updateDSkills,
          "Digital skills are important in my chosen career" = DSkillsneededinCareer,
@@ -531,6 +554,7 @@ likert <- student_model %>%
 
 q21 <- likert %>% 
   select(DTeachingSkills) %>% 
+  mutate_if(is.factor, fct_rev) %>% 
   rename(" Overall, how would you rate the quality of digital teaching and learning on your course?" = DTeachingSkills) %>% 
   likert(grouping = likert %>% pull(survey)) %>% 
   plot(ordered = F, wrap= 100, labeller = labels, text.size = 5) + 
@@ -577,6 +601,7 @@ likert <- student_model_2 %>%
 
 q24 <- likert %>% 
   select(BetterUndertstanding:Fitseasily) %>%
+  mutate_if(is.factor, fct_rev) %>% 
   rename("I understand things better" = BetterUndertstanding,
          "I enjoy learning more" = Enjoymore,
          "I am more independent in my learning" = Independent,
