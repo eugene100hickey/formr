@@ -186,24 +186,36 @@ q02
 # Question 5
 
 q05 <- student_model %>% 
-  filter(survey == "DifTU-2021") %>% 
+  select(Study, survey) %>% 
+  mutate(Study = as.character(Study)) %>% 
+  mutate(Study = ifelse(Study == "Business and Administration and Law", "Business, Administration and Law", Study),
+         Study = ifelse(Study == "Arts and Humanities", "Arts, Humanities and Languages", Study),
+         Study = ifelse(Study == "Computing, Information and Communication Technologies", "Computing and ICT", Study),
+         Study = ifelse(Study == "Engineering and Manufacturing or Architecture and Construction", "Engineering, Manufacturing, Architecture and Construction", Study),
+         Study = ifelse(Study == "Health (e.g. Medicine, Dentistry, Nursing, Pharmacy, Physiotherapy and Sports in Health)", "Health", Study),
+         Study = ifelse(Study == "Natural Sciences (e.g. Biology, Chemistry, Physics) and Mathematics", "Natural Sciences and Mathematics", Study)) %>% 
+  filter(!is.na(Study)) %>% 
   mutate(Study = fct_infreq(Study)) %>% 
-  count(Study) %>% 
-  ggplot(aes(n, fct_rev(Study))) +
-  geom_col(fill = fill_colour, width = 0.8) +
-  geom_text(aes(label = glue::glue("{n}  ({round(n / sum(n) * 100, 0)} %)"), 
-                x = min(n/2)), 
+  count(Study, survey) %>% 
+  group_by(survey) %>%
+  mutate(percentage = round(n/sum(n)*100, 0),
+         Study = fct_rev(Study)) %>%
+  ungroup() %>% 
+  ggplot(aes(percentage, Study, fill = survey)) +
+  geom_col(width = 0.8, position = "dodge", show.legend = F) +
+  scale_fill_manual(values = c(diftu_colour, index_colour)) +
+  geom_text(aes(label = glue::glue("{n}  ({percentage} %)"), 
+                x = 3), 
             size = 6, colour = font_colour,
-            family = "my_font",
+            family = "my_font", 
+            position = position_dodge(width = 0.7),
             fontface = "bold") +
   scale_y_discrete(labels = scales::wrap_format(30)) +
-  labs(title = "Q5. What area is your programme of study?") +
+  theme(axis.title = element_blank(),
+        axis.text.x = element_blank()) +
+  labs(title = glue::glue("Q5. What area is your programme of study? (<i style = 'color:{index_colour};'>INDex-2019</i>, <i style = 'color:{diftu_colour};'>DifTU-2021</i>)")) +
   theme(plot.title.position = "plot",
-        title = element_text(size = 20),
-        axis.text.x = element_blank(),
-        axis.title = element_blank(),
-        axis.text.y = element_text(lineheight = 0.8),
-        panel.grid = element_blank())
+        plot.title = element_markdown())
 q05
 
 
