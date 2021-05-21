@@ -20,7 +20,16 @@ student$tablet <- sapply(1:nrow(student), function(x) {"Tablet/iPad" %in% studen
 student$other <- sapply(1:nrow(student), function(x) {"6" %in% student$Device[[x]]})
 student$no_device <- sapply(1:nrow(student), function(x) {"None of the above" %in% student$Device[[x]]})
 
-write_csv(student %>% select(session = unique_respo, laptop:no_device), "../data/student-index-devices.csv")
+student <- student %>% 
+  mutate(city = sum(x29_which_tu == "City Centre", na.rm = T),
+         tallaght = sum(x29_which_tu == "Tallaght", na.rm = T),
+         blanch = sum(x29_which_tu == "Blanchardstown", na.rm = T))
+
+write_csv(student %>% select(session = unique_respo, 
+                             campus = x29_which_tu, 
+                             city, tallaght, blanch,
+                             laptop:no_device), 
+          "../data/student-index-devices.csv")
 
 student <- student %>% mutate(access = str_split(x13_which_of, pattern = ","))
 
@@ -32,7 +41,7 @@ student$recorded_lectures <- sapply(1:nrow(student), function(x) {"Recorded lect
 student$internet_training <- sapply(1:nrow(student), function(x) {"Internet-based skills training" %in% student$access[[x]]})
 student$none_access <- sapply(1:nrow(student), function(x) {"None of the above" %in% student$access[[x]]})
 
-write_csv(student %>% select(session = unique_respo, wifi:none_access), "../data/student-index-access.csv")
+write_csv(student %>% select(session = unique_respo, campus = x29_which_tu, wifi:none_access), "../data/student-index-access.csv")
 
 
 student <- student %>% 

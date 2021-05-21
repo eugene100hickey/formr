@@ -2,6 +2,7 @@ library(tidyverse)
 library(likert)
 library(showtext)
 library(ggtext)
+library(patchwork)
 
 font_add_google("Tillana", "my_font")
 
@@ -34,11 +35,11 @@ student_index <- read_csv("../data/student-index-tidy.csv") %>%
          Age = ifelse(Age == "30 plus", "30 +", Age))
 student_diftu <- read_csv("../data/student-diftu-tidy.csv") %>% 
   select(-c(Other, DTLkeep)) %>% 
-  select(-c(QualityL:none_access)) %>% 
+  select(-c(QualityL:blanch)) %>% 
   mutate(survey = "DifTU-2021")
 student_diftu_devices <- read_csv("../data/student-diftu-tidy.csv") %>% 
-  select(session, laptop:no_device) %>% 
-  pivot_longer(cols = -session, 
+  select(session, Campus, laptop:no_device, city:blanch) %>% 
+  pivot_longer(cols = -c(session, Campus, city:blanch), 
                names_to = "device", 
                values_to = "possesses") %>% 
   filter(possesses) %>% 
@@ -54,8 +55,8 @@ student_diftu_devices <- read_csv("../data/student-diftu-tidy.csv") %>%
          number_students = nrow(student_diftu))
 
 student_index_devices <- read_csv("../data/student-index-devices.csv") %>% 
-  select(session, laptop:no_device) %>% 
-  pivot_longer(cols = -session, 
+  select(session, Campus = campus, city:no_device) %>% 
+  pivot_longer(cols = -c(session, Campus, city:blanch), 
                names_to = "device", 
                values_to = "possesses") %>% 
   filter(possesses) %>% 
@@ -346,6 +347,85 @@ q11 <- student_devices %>%
   theme(plot.title.position = "plot",
         plot.title = element_markdown())
 q11
+
+# Question 11 - City
+q11_city <- student_devices %>% 
+  filter(!(device == "Other"), Campus == "City Centre") %>% 
+  mutate(device = fct_infreq(device)) %>% 
+  count(device, survey, city) %>% 
+  group_by(survey) %>%
+  mutate(percentage = round(n/city*100, 0),
+         survey = survey) %>%
+  ungroup() %>% 
+  ggplot(aes(percentage, fct_rev(device), fill = survey)) +
+  geom_col(width = 0.8, position = "dodge", show.legend = F) +
+  scale_fill_manual(values = c(diftu_colour, index_colour)) +
+  geom_text(aes(label = glue::glue("{n}  ({percentage} %)"), 
+                x = 10), 
+            size = 6, colour = font_colour,
+            family = "my_font", 
+            position = position_dodge(width = 0.7),
+            fontface = "bold") +
+  theme(axis.title = element_blank(),
+        axis.text.x = element_blank()) +
+  labs(title = glue::glue("Q11. City")) +
+  theme(plot.title.position = "plot",
+        plot.title = element_markdown())
+q11_city
+
+# Question 11 - Tallaght
+q11_tallaght <- student_devices %>% 
+  filter(!(device == "Other"), Campus == "Tallaght") %>% 
+  mutate(device = fct_infreq(device)) %>% 
+  count(device, survey, tallaght) %>% 
+  group_by(survey) %>%
+  mutate(percentage = round(n/tallaght*100, 0),
+         survey = survey) %>%
+  ungroup() %>% 
+  ggplot(aes(percentage, fct_rev(device), fill = survey)) +
+  geom_col(width = 0.8, position = "dodge", show.legend = F) +
+  scale_fill_manual(values = c(diftu_colour, index_colour)) +
+  geom_text(aes(label = glue::glue("{n}  ({percentage} %)"), 
+                x = 10), 
+            size = 6, colour = font_colour,
+            family = "my_font", 
+            position = position_dodge(width = 0.7),
+            fontface = "bold") +
+  theme(axis.title = element_blank(),
+        axis.text.x = element_blank()) +
+  labs(title = glue::glue("Q11. Tallaght")) +
+  theme(plot.title.position = "plot",
+        plot.title = element_markdown())
+q11_tallaght
+
+# Question 11 - Blanch
+q11_blanch <- student_devices %>% 
+  filter(!(device == "Other"), Campus == "Blanchardstown") %>% 
+  mutate(device = fct_infreq(device)) %>% 
+  count(device, survey, blanch) %>% 
+  group_by(survey) %>%
+  mutate(percentage = round(n/blanch*100, 0),
+         survey = survey) %>%
+  ungroup() %>% 
+  ggplot(aes(percentage, fct_rev(device), fill = survey)) +
+  geom_col(width = 0.8, position = "dodge", show.legend = F) +
+  scale_fill_manual(values = c(diftu_colour, index_colour)) +
+  geom_text(aes(label = glue::glue("{n}  ({percentage} %)"), 
+                x = 10), 
+            size = 6, colour = font_colour,
+            family = "my_font", 
+            position = position_dodge(width = 0.7),
+            fontface = "bold") +
+  theme(axis.title = element_blank(),
+        axis.text.x = element_blank()) +
+  labs(title = glue::glue("Q11. Blanch")) +
+  theme(plot.title.position = "plot",
+        plot.title = element_markdown())
+q11_blanch
+
+# Question 11 - composite
+
+((q11 + theme(plot.title = element_blank())) + q11_city) / (q11_tallaght + q11_blanch)
 
 # Question 12
 likert <- student_model %>%

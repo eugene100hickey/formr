@@ -152,10 +152,15 @@ student <- student %>%
                           Support),
          Support = ifelse(Support == "Online video and resources", 
                           "Online videos and resources",
-                          Support))
+                          Support),
+         city = sum(Campus == "City Centre"),
+         tallaght = sum(Campus == "Tallaght"),
+         blanch = sum(Campus == "Blanchardstown"))
 
 student <- student %>% 
   select(-c(Device, AccessDL))
+
+write_csv(student, file = "../data/student-diftu-tidy.csv")
 
 student_model <- student %>% 
   select(Campus:LearningNeedmet, 
