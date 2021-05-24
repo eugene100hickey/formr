@@ -335,18 +335,19 @@ q11 <- student_devices %>%
   ggplot(aes(percentage, fct_rev(device), fill = survey)) +
   geom_col(width = 0.8, position = "dodge", show.legend = F) +
   scale_fill_manual(values = c(diftu_colour, index_colour)) +
+  theme(axis.title = element_blank(),
+        axis.text.x = element_blank()) +
+  theme(plot.title.position = "plot",
+        plot.title = element_markdown())
+q11 + 
   geom_text(aes(label = glue::glue("{n}  ({percentage} %)"), 
                 x = 10), 
             size = 6, colour = font_colour,
             family = "my_font", 
             position = position_dodge(width = 0.7),
             fontface = "bold") +
-  theme(axis.title = element_blank(),
-        axis.text.x = element_blank()) +
-  labs(title = glue::glue("Q11. Which of these personally-owned devices do you use to support your learning?<br>(Choose all that apply) (<i style = 'color:{index_colour};'>INDex-2019</i>, <i style = 'color:{diftu_colour};'>DifTU-2021</i>)")) +
-  theme(plot.title.position = "plot",
-        plot.title = element_markdown())
-q11
+  labs(title = glue::glue("Q11. Which of these personally-owned devices do you use to support your learning?<br>(Choose all that apply) (<i style = 'color:{index_colour};'>INDex-2019</i>, <i style = 'color:{diftu_colour};'>DifTU-2021</i>)"))
+
 
 # Question 11 - City
 q11_city <- student_devices %>% 
@@ -360,18 +361,18 @@ q11_city <- student_devices %>%
   ggplot(aes(percentage, fct_rev(device), fill = survey)) +
   geom_col(width = 0.8, position = "dodge", show.legend = F) +
   scale_fill_manual(values = c(diftu_colour, index_colour)) +
-  geom_text(aes(label = glue::glue("{n}  ({percentage} %)"), 
-                x = 10), 
-            size = 6, colour = font_colour,
-            family = "my_font", 
-            position = position_dodge(width = 0.7),
-            fontface = "bold") +
   theme(axis.title = element_blank(),
         axis.text.x = element_blank()) +
   labs(title = glue::glue("Q11. City")) +
   theme(plot.title.position = "plot",
         plot.title = element_markdown())
-q11_city
+q11_city +
+  geom_text(aes(label = glue::glue("{n}  ({percentage} %)"), 
+                x = 10), 
+            size = 6, colour = font_colour,
+            family = "my_font", 
+            position = position_dodge(width = 0.7),
+            fontface = "bold")
 
 # Question 11 - Tallaght
 q11_tallaght <- student_devices %>% 
@@ -385,18 +386,18 @@ q11_tallaght <- student_devices %>%
   ggplot(aes(percentage, fct_rev(device), fill = survey)) +
   geom_col(width = 0.8, position = "dodge", show.legend = F) +
   scale_fill_manual(values = c(diftu_colour, index_colour)) +
-  geom_text(aes(label = glue::glue("{n}  ({percentage} %)"), 
-                x = 10), 
-            size = 6, colour = font_colour,
-            family = "my_font", 
-            position = position_dodge(width = 0.7),
-            fontface = "bold") +
   theme(axis.title = element_blank(),
         axis.text.x = element_blank()) +
   labs(title = glue::glue("Q11. Tallaght")) +
   theme(plot.title.position = "plot",
         plot.title = element_markdown())
-q11_tallaght
+q11_tallaght +
+  geom_text(aes(label = glue::glue("{n}  ({percentage} %)"), 
+                x = 10), 
+            size = 6, colour = font_colour,
+            family = "my_font", 
+            position = position_dodge(width = 0.7),
+            fontface = "bold")
 
 # Question 11 - Blanch
 q11_blanch <- student_devices %>% 
@@ -410,22 +411,23 @@ q11_blanch <- student_devices %>%
   ggplot(aes(percentage, fct_rev(device), fill = survey)) +
   geom_col(width = 0.8, position = "dodge", show.legend = F) +
   scale_fill_manual(values = c(diftu_colour, index_colour)) +
-  geom_text(aes(label = glue::glue("{n}  ({percentage} %)"), 
-                x = 10), 
-            size = 6, colour = font_colour,
-            family = "my_font", 
-            position = position_dodge(width = 0.7),
-            fontface = "bold") +
   theme(axis.title = element_blank(),
         axis.text.x = element_blank()) +
   labs(title = glue::glue("Q11. Blanch")) +
   theme(plot.title.position = "plot",
         plot.title = element_markdown())
-q11_blanch
+q11_blanch +
+  geom_text(aes(label = glue::glue("{n}  ({percentage} %)"), 
+                x = 10), 
+            size = 6, colour = font_colour,
+            family = "my_font", 
+            position = position_dodge(width = 0.7),
+            fontface = "bold")
 
 # Question 11 - composite
 
-((q11 + theme(plot.title = element_blank())) + q11_city) / (q11_tallaght + q11_blanch)
+plot_grid(q11 + labs(title = "Q11. Overall"), q11_blanch, q11_city, q11_tallaght)
+
 
 # Question 12
 likert <- student_model %>%
