@@ -24,6 +24,12 @@ staff_missing <- rowSums(is.na(staff))
 staff <- staff[staff_missing<20,] %>% 
   select(-c(expired, AssitTechSupport, Other, Informationcheck, Feedback))
 
+staff_info <- fromJSON(file = "../data/StaffSurvey.json")[[2]][[1]]$survey_data[[2]]
+
+staff_info_names <- map_chr(1:length(staff_info), function(x) staff_info[x][[1]]$name)
+
+
+
 staff <- staff %>% 
   mutate(Job = Job %>% str_replace("<h5>.*?>", "") %>% str_replace("<.*", "") %>% str_trim(),
          Discipline = Discipline %>% str_replace("<h5>.*?>", "") %>% str_replace("<.*", "") %>% str_trim(),
@@ -59,7 +65,7 @@ fun_quote <- function(x){
   fun(quote({{x}}) %>% as.character)
 }
 
-z <- staff %>% 
+staff <- staff %>% 
   mutate(Teaching = fun("Teaching"),
          Campus = fun("Campus"), 
          Gender = fun("Gender"),
@@ -100,15 +106,15 @@ z <- staff %>%
          Concerns = fun("Concerns"),
          OnlineTeachingExper = fun("OnlineTeachingExper"),
          Prefsforfuture = fun("Prefsforfuture"),
-         WorkingPref = fun("WorkingPref"))
+         WorkingPref = fun("WorkingPref"),
+         Access = str_split(Access, pattern = ", "))
 
-write_csv(z, file = "../data/staff-survey-tidy.csv")
+staff$vle <- sapply(1:nrow(staff), function(x) {"1" %in% staff$Access[[x]]})
+staff$e_books <- sapply(1:nrow(staff), function(x) {"2" %in% staff$Access[[x]]})
+staff$file_storage <- sapply(1:nrow(staff), function(x) {"3" %in% staff$Access[[x]]})
+staff$internet_training <- sapply(1:nrow(staff), function(x) {"4" %in% staff$Access[[x]]})
+staff$lecture_capture <- sapply(1:nrow(staff), function(x) {"5" %in% staff$Access[[x]]})
+staff$social_media <- sapply(1:nrow(staff), function(x) {"6" %in% staff$Access[[x]]})
+staff$wifi <- sapply(1:nrow(staff), function(x) {"7" %in% staff$Access[[x]]})
 
-# z <- staff %>% 
-#   mutate(Teaching = fun(quote(Teaching) %>% as.character),
-#          Campus = fun_quote <- function(Campus, as.character) {
-#   fun(quote(Campus) %>% as.character)
-# })
-# 
-# z <- staff %>% 
-#   mutate(across(Teaching, function(x) {fun(quote(x) %>% as.character)}))
+write_csv(staff %>% select(-Access), file = "../data/staff-diftu-tidy.csv")

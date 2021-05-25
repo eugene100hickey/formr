@@ -2,7 +2,7 @@ library(tidyverse)
 library(readxl)
 library(lubridate)
 
-sheet_names <- excel_sheets("../data/INDEx Survey Staff Comments.xlsx")
+# sheet_names <- excel_sheets("../data/INDEx Survey Staff Comments.xlsx")
 
 staff <- xlsx::read.xlsx(file = "../data/INDEx Survey Staff Comments.xlsx", 
                            sheetName = "Survey") %>% 
@@ -19,11 +19,13 @@ staff <- staff %>%
                                x5_in_what_d)) %>% 
   select(-x5_a_if_your) %>% 
   select(Campus = x22_which_tu,
+         Job = x4_what_best,
          Discipline = x5_in_what_d,
          AssistTech = x7_do_you_pe,
          Gender = x6_what_gend,
          approachtoTech =  x9_which_bes,
          SupportDTech = x10_who_supp,
+         Access = x11_which_of,
          RELIABLE = x12_1_a_i_re,
          organiseVLE = x12_2_a_it_i,
          CollabVLE = x12_3_a_i_re,
@@ -58,4 +60,15 @@ staff <- staff %>%
          BetterSupp = x21_what_one
   )
 
-write_csv(staff, "../data/staff-index-tidy.csv")
+staff <- staff %>% mutate(Access = str_split(Access, pattern = ","))
+
+staff$wifi <- sapply(1:nrow(staff), function(x) {"Reliable WiFi" %in% staff$Access[[x]]})
+staff$vle <- sapply(1:nrow(staff), function(x) {"A virtual learning environment" %in% staff$Access[[x]]})
+staff$file_storage <- sapply(1:nrow(staff), function(x) {"File storage and back-up" %in% staff$Access[[x]]})
+staff$e_books <- sapply(1:nrow(staff), function(x) {"e-books and e-journals" %in% staff$Access[[x]]})
+staff$social_media <- sapply(1:nrow(staff), function(x) {"My own social media (e.g. Facebook, LinkedIn)" %in% staff$Access[[x]]})
+staff$internet_training <- sapply(1:nrow(staff), function(x) {"Internet-based skills training" %in% staff$Access[[x]]})
+staff$none_access <- sapply(1:nrow(staff), function(x) {"None of the above" %in% staff$Access[[x]]})
+staff$lecture_capture <- NULL
+
+write_csv(staff %>% select(-Access), "../data/staff-index-tidy.csv")

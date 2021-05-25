@@ -3,6 +3,7 @@ library(likert)
 library(showtext)
 library(ggtext)
 library(patchwork)
+library(patchwork)
 
 font_add_google("Tillana", "my_font")
 
@@ -37,6 +38,7 @@ student_diftu <- read_csv("../data/student-diftu-tidy.csv") %>%
   select(-c(Other, DTLkeep)) %>% 
   select(-c(QualityL:blanch)) %>% 
   mutate(survey = "DifTU-2021")
+
 student_diftu_devices <- read_csv("../data/student-diftu-tidy.csv") %>% 
   select(session, Campus, laptop:no_device, city:blanch) %>% 
   pivot_longer(cols = -c(session, Campus, city:blanch), 
@@ -265,7 +267,7 @@ q07 <- student_model %>%
             fontface = "bold") +
   theme(axis.title = element_blank(),
         axis.text.x = element_blank()) +
-  labs(title = glue::glue("Q7. What gender do you identify as? (e.g. screen readers, voicerecognition, switches)<br>(<i style = 'color:{index_colour};'>INDex-2019</i>, <i style = 'color:{diftu_colour};'>DifTU-2021</i>)")) +
+  labs(title = glue::glue("Q7. What gender do you identify as? (<i style = 'color:{index_colour};'>INDex-2019</i>, <i style = 'color:{diftu_colour};'>DifTU-2021</i>)")) +
   theme(plot.title.position = "plot",
         plot.title = element_markdown())
 q07
@@ -317,7 +319,7 @@ q09 <- student_model %>%
             fontface = "bold") +
   theme(axis.title = element_blank(),
         axis.text.x = element_blank()) +
-  labs(title = glue::glue("Q09. f YES, has your institution provided you with any support with assistive technologies?<br>(<i style = 'color:{index_colour};'>INDex-2019</i>, <i style = 'color:{diftu_colour};'>DifTU-2021</i>)")) +
+  labs(title = glue::glue("Q09. If YES, has your institution provided you<br>with any support with assistive technologies?<br>(<i style = 'color:{index_colour};'>INDex-2019</i>, <i style = 'color:{diftu_colour};'>DifTU-2021</i>)")) +
   theme(plot.title.position = "plot",
         plot.title = element_markdown())
 q09
@@ -426,7 +428,7 @@ q11_blanch +
 
 # Question 11 - composite
 
-plot_grid(q11 + labs(title = "Q11. Overall"), q11_blanch, q11_city, q11_tallaght)
+cowplot::plot_grid(q11 + labs(title = "Q11. Overall"), q11_blanch, q11_city, q11_tallaght)
 
 
 # Question 12

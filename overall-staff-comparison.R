@@ -36,14 +36,48 @@ staff_index <- read_csv("../data/staff-index-tidy.csv") %>%
 
 
 staff_diftu <- read_csv("../data/staff-diftu-tidy.csv") %>% 
-  select(Campus, Discipline:BetterSupp) %>% 
-  select(-c(Access, RecordL, DToolsandApps)) %>% 
+  select(Campus, Job, Discipline:BetterSupp) %>% 
+  select(-c(RecordL, DToolsandApps)) %>% 
   mutate(survey = "DifTU-2021")
 
 
-staff <- bind_rows(staff_diftu, staff_index)
+staff <- bind_rows(staff_diftu, staff_index %>% select(-c(wifi:none_access)))
 # student_devices <- bind_rows(student_diftu_devices, student_index_devices)
 # student_access <- bind_rows(student_diftu_access, student_index_access)
+
+staff_diftu_access <- read_csv("../data/staff-diftu-tidy.csv") %>% 
+  select(Campus, vle:wifi) %>% 
+  pivot_longer(cols = -Campus, 
+               names_to = "access", 
+               values_to = "possesses") %>% 
+  filter(possesses) %>% 
+  mutate(access = recode_factor(access,
+                                vle = "A virtual learning environment",
+                                wifi = "Reliable Wi-Fi",
+                                e_books = "e-books and e-journals",
+                                file_storage = "File storage and back-up",
+                                lecture_capture = "Lecture capture",
+                                internet_training = "Internet-based skills training"))%>% 
+  mutate(survey = "DifTU-2021",
+         number_students = nrow(staff_diftu))
+
+staff_index_access <- read_csv("../data/staff-index-tidy.csv") %>% 
+  select(Campus, wifi:internet_training) %>% 
+  pivot_longer(cols = -c(Campus), 
+               names_to = "access", 
+               values_to = "possesses") %>% 
+  filter(possesses) %>% 
+  mutate(access = recode_factor(access,
+                                vle = "A virtual learning environment",
+                                wifi = "Reliable Wi-Fi",
+                                e_books = "e-books and e-journals",
+                                file_storage = "File storage and back-up",
+                                lecture_capture = "Lecture capture",
+                                internet_training = "Internet-based skills training")) %>% 
+  mutate(survey = "INDEx-2019",
+         number_students = nrow(staff_index))
+
+staff_access <- bind_rows(staff_diftu_access, staff_index_access)
 
 
 staff_model <- staff %>% 
@@ -71,6 +105,32 @@ staff_model <- staff %>%
                                                                  "I tend to adopt new technologies at the pace of my peers",
                                                                  "I tend to adopt new technologies after my peers")))
 
+
+# Question 6
+q04 <- staff_model %>% 
+  filter(!is.na(Job)) %>% 
+  mutate(Job = fct_infreq(Job)) %>% 
+  count(Job, survey) %>% 
+  group_by(survey) %>%
+  mutate(percentage = round(n/sum(n)*100, 0),
+         survey = survey) %>%
+  ungroup() %>% 
+  ggplot(aes(percentage, fct_rev(Job), fill = survey)) +
+  geom_col(width = 0.8, position = "dodge", show.legend = F) +
+  scale_fill_manual(values = c(diftu_colour, index_colour)) +
+  geom_text(aes(label = glue::glue("{n}  ({percentage} %)"), 
+                x = 8), 
+            size = 6, colour = font_colour,
+            family = "my_font", 
+            position = position_dodge(width = 0.7),
+            fontface = "bold") +
+  theme(axis.title = element_blank(),
+        axis.text.x = element_blank()) +
+  labs(title = glue::glue("Q4. What	best	describes	your	role?	(NOTE:	If	you	have	more	than	one	role<br>in	the	institution,	please
+choose	the	one	in	which	you	spend	the	most time<br>on	a	FTE	(Full	Time	Equivalent)	basis)<br>(<i style = 'color:{index_colour};'>INDex-2019</i>, <i style = 'color:{diftu_colour};'>DifTU-2021</i>)")) +
+  theme(plot.title.position = "plot",
+        plot.title = element_markdown())
+q04
 
 # Question 5
 
@@ -102,15 +162,15 @@ q05 <- staff_model %>%
   scale_y_discrete(labels = scales::wrap_format(30)) +
   theme(axis.title = element_blank(),
         axis.text.x = element_blank()) +
-  labs(title = glue::glue("Q5. What area is your programme of study? (<i style = 'color:{index_colour};'>INDex-2019</i>, <i style = 'color:{diftu_colour};'>DifTU-2021</i>)")) +
+  labs(title = glue::glue("Q5. In	what	discipline	or	unit	do	you	teach	or	support	learning	and	teaching?<br>(<i style = 'color:{index_colour};'>INDex-2019</i>, <i style = 'color:{diftu_colour};'>DifTU-2021</i>)")) +
   theme(plot.title.position = "plot",
         plot.title = element_markdown())
 q05
 
 
 
-# Question 7
-q07 <- staff_model %>% 
+# Question 6
+q06 <- staff_model %>% 
   filter(!is.na(Gender)) %>% 
   count(Gender, survey) %>% 
   group_by(survey) %>%
@@ -128,14 +188,14 @@ q07 <- staff_model %>%
             fontface = "bold") +
   theme(axis.title = element_blank(),
         axis.text.x = element_blank()) +
-  labs(title = glue::glue("Q7. What gender do you identify as? (e.g. screen readers, voicerecognition, switches)<br>(<i style = 'color:{index_colour};'>INDex-2019</i>, <i style = 'color:{diftu_colour};'>DifTU-2021</i>)")) +
+  labs(title = glue::glue("Q6. What gender do you identify as? (<i style = 'color:{index_colour};'>INDex-2019</i>, <i style = 'color:{diftu_colour};'>DifTU-2021</i>)")) +
   theme(plot.title.position = "plot",
         plot.title = element_markdown())
-q07
+q06
 
-# Question 8
+# Question 7
 
-q08 <- staff_model %>% 
+q07 <- staff_model %>% 
   filter(!is.na(AssistTech)) %>% 
   mutate(AssistTech = ifelse(str_detect(AssistTech, "Yes"), "Yes", "No")) %>% 
   count(AssistTech, survey) %>% 
@@ -154,10 +214,10 @@ q08 <- staff_model %>%
             fontface = "bold") +
   theme(axis.title = element_blank(),
         axis.text.x = element_blank()) +
-  labs(title = glue::glue("Q08. Do you use any assistive technologies to meet your learning needs?<br>(e.g. screen readers, voicerecognition, switches)<br>(<i style = 'color:{index_colour};'>INDex-2019</i>, <i style = 'color:{diftu_colour};'>DifTU-2021</i>)")) +
+  labs(title = glue::glue("Q07. Do you use any assistive technologies to meet your learning needs?<br>(e.g. screen readers, voicerecognition, switches)<br>(<i style = 'color:{index_colour};'>INDex-2019</i>, <i style = 'color:{diftu_colour};'>DifTU-2021</i>)")) +
   theme(plot.title.position = "plot",
         plot.title = element_markdown())
-q08
+q07
 
 # Question 9
 
@@ -209,17 +269,17 @@ q10 <- staff_model %>%
         plot.title = element_markdown())
 q10
 
-
 # Question 11
-q11 <- student_devices %>% 
-  filter(!(device == "Other")) %>% 
-  mutate(device = fct_infreq(device)) %>% 
-  count(device, survey, number_students) %>% 
+
+q11 <- staff_access %>% 
+  filter(!(access == "Other")) %>% 
+  mutate(access = fct_infreq(access)) %>% 
+  count(access, survey, number_students) %>% 
   group_by(survey) %>%
   mutate(percentage = round(n/number_students*100, 0),
          survey = survey) %>%
   ungroup() %>% 
-  ggplot(aes(percentage, fct_rev(device), fill = survey)) +
+  ggplot(aes(percentage, fct_rev(access), fill = survey)) +
   geom_col(width = 0.8, position = "dodge", show.legend = F) +
   scale_fill_manual(values = c(diftu_colour, index_colour)) +
   theme(axis.title = element_blank(),
@@ -233,88 +293,8 @@ q11 +
             family = "my_font", 
             position = position_dodge(width = 0.7),
             fontface = "bold") +
-  labs(title = glue::glue("Q11. Which of these personally-owned devices do you use to support your learning?<br>(Choose all that apply) (<i style = 'color:{index_colour};'>INDex-2019</i>, <i style = 'color:{diftu_colour};'>DifTU-2021</i>)"))
-
-
-# Question 11 - City
-q11_city <- student_devices %>% 
-  filter(!(device == "Other"), Campus == "City Centre") %>% 
-  mutate(device = fct_infreq(device)) %>% 
-  count(device, survey, city) %>% 
-  group_by(survey) %>%
-  mutate(percentage = round(n/city*100, 0),
-         survey = survey) %>%
-  ungroup() %>% 
-  ggplot(aes(percentage, fct_rev(device), fill = survey)) +
-  geom_col(width = 0.8, position = "dodge", show.legend = F) +
-  scale_fill_manual(values = c(diftu_colour, index_colour)) +
-  theme(axis.title = element_blank(),
-        axis.text.x = element_blank()) +
-  labs(title = glue::glue("Q11. City")) +
-  theme(plot.title.position = "plot",
-        plot.title = element_markdown())
-q11_city +
-  geom_text(aes(label = glue::glue("{n}  ({percentage} %)"), 
-                x = 10), 
-            size = 6, colour = font_colour,
-            family = "my_font", 
-            position = position_dodge(width = 0.7),
-            fontface = "bold")
-
-# Question 11 - Tallaght
-q11_tallaght <- student_devices %>% 
-  filter(!(device == "Other"), Campus == "Tallaght") %>% 
-  mutate(device = fct_infreq(device)) %>% 
-  count(device, survey, tallaght) %>% 
-  group_by(survey) %>%
-  mutate(percentage = round(n/tallaght*100, 0),
-         survey = survey) %>%
-  ungroup() %>% 
-  ggplot(aes(percentage, fct_rev(device), fill = survey)) +
-  geom_col(width = 0.8, position = "dodge", show.legend = F) +
-  scale_fill_manual(values = c(diftu_colour, index_colour)) +
-  theme(axis.title = element_blank(),
-        axis.text.x = element_blank()) +
-  labs(title = glue::glue("Q11. Tallaght")) +
-  theme(plot.title.position = "plot",
-        plot.title = element_markdown())
-q11_tallaght +
-  geom_text(aes(label = glue::glue("{n}  ({percentage} %)"), 
-                x = 10), 
-            size = 6, colour = font_colour,
-            family = "my_font", 
-            position = position_dodge(width = 0.7),
-            fontface = "bold")
-
-# Question 11 - Blanch
-q11_blanch <- student_devices %>% 
-  filter(!(device == "Other"), Campus == "Blanchardstown") %>% 
-  mutate(device = fct_infreq(device)) %>% 
-  count(device, survey, blanch) %>% 
-  group_by(survey) %>%
-  mutate(percentage = round(n/blanch*100, 0),
-         survey = survey) %>%
-  ungroup() %>% 
-  ggplot(aes(percentage, fct_rev(device), fill = survey)) +
-  geom_col(width = 0.8, position = "dodge", show.legend = F) +
-  scale_fill_manual(values = c(diftu_colour, index_colour)) +
-  theme(axis.title = element_blank(),
-        axis.text.x = element_blank()) +
-  labs(title = glue::glue("Q11. Blanch")) +
-  theme(plot.title.position = "plot",
-        plot.title = element_markdown())
-q11_blanch +
-  geom_text(aes(label = glue::glue("{n}  ({percentage} %)"), 
-                x = 10), 
-            size = 6, colour = font_colour,
-            family = "my_font", 
-            position = position_dodge(width = 0.7),
-            fontface = "bold")
-
-# Question 11 - composite
-
-plot_grid(q11 + labs(title = "Q11. Overall"), q11_blanch, q11_city, q11_tallaght)
-
+  labs(title = glue::glue("Q11. Which of these do you have access to at your institution whenever you need them?<br>(Tick all that apply)  (<i style = 'color:{index_colour};'>INDex-2019</i>, <i style = 'color:{diftu_colour};'>DifTU-2021</i>)"))
+q11
 
 # Question 12
 likert <- staff_model %>%
@@ -332,8 +312,7 @@ q12 <- likert %>%
          "I regularly access it on a mobile device" = VLEmobile) %>% 
   likert(grouping = likert %>% pull(survey)) %>% 
   plot(ordered = F, wrap= 60, labeller = labels, text.size = 5) + 
-  labs(title = toupper("Q12. How much do you agree with the following statements about your VLE (Virtual Learning
-Environment)?")) +
+  labs(title = toupper("Q12. How much do you agree with the following statements about your VLE\n(Virtual Learning Environment)?")) +
   theme(plot.title.position = "plot",
         plot.title = element_text(size = 20))
 q12
