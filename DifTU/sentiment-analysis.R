@@ -1,4 +1,5 @@
 # https://juliasilge.com/blog/animal-crossing/
+# https://www.tidytextmining.com/tfidf.html
 
 library(formr)
 library(lubridate)
@@ -40,7 +41,7 @@ student <- student %>%
            str_trim()
   )
 
-student_info <- fromJSON(file = "data/StudentSurvey.json")[[2]][[1]]$survey_data[[2]]
+student_info <- fromJSON(file = "../data/StudentSurvey.json")[[2]][[1]]$survey_data[[2]]
 
 student_info_names <- map_chr(1:length(student_info), function(x) student_info[x][[1]]$name)
 
@@ -57,15 +58,23 @@ fun <- function(var){
 
 # options for 'grade' below
 # DigitalExperience
+subcaption <- ""
+Quality_label <- "Overall, how would you rate the quality of this institution's\ndigital provision (software, hardware and learning environment)"
 # DTeachingSkills
+subcaption <- ""
 # QualityL
+subcaption <- "Lectures"
 # QualityOL
+subcaption <- "Online Labs"
 # QualityW
+subcaption <- "Workshops"
 # QualityLib
+subcaption <- "Library acess"
+Quality_label <- "Overall, since March 2020, how would you rate the quality\nof digital teaching and learning on your course?"
 
-key_word <- "teams"
+key_word <- "lecturers"
 digital_experience <- student %>% 
-  select(grade = DTeachingSkills, 
+  select(grade = QualityLib, 
          text = Usefuldigitalactivity,
          text1 = DTLkeep,
          user_name = email) %>% 
@@ -73,6 +82,38 @@ digital_experience <- student %>%
   unite(col = text, text, text1, sep = ", ", remove = T) %>% 
   mutate(keyword = str_detect(text, key_word),
          text = tolower(text))
+
+# Wed May 26 15:19:38 2021 ------------------------------
+physics_words <- digital_experience %>%
+  select(grade, text) %>% 
+  unnest_ngrams(word, text, n=1) %>%
+  count(grade, word, sort = TRUE)
+
+plot_physics <- physics_words %>%
+  bind_tf_idf(word, grade, n) %>%
+  mutate(grade = factor(grade),
+         grade = recode_factor(grade, `1` = "Best", 
+                               `2` = "Good", 
+                               `3` = "Neutral", 
+                               `4` = "Poor", 
+                               `5` = "Worst"))
+
+plot_physics %>% 
+  filter(str_length(word) > 6) %>% 
+  group_by(grade) %>% 
+  slice_max(tf_idf, n = 6, with_ties = F) %>% 
+  ungroup() %>%
+  mutate(word = reorder(word, tf_idf)) %>%
+  ggplot(aes(tf_idf, word, fill = grade)) +
+  geom_col(show.legend = FALSE) +
+  labs(title = Quality_label, 
+       subtitle = glue::glue("<i style = 'color:#9B110E;'>{subcaption}</i>"), y = NULL, x = NULL) +
+  facet_wrap(~grade, ncol = 3, scales = "free") +
+  theme(axis.text.x = element_blank(),
+        plot.title.position = "plot",
+        plot.subtitle = element_markdown(hjust = 0.5, size = 32))
+
+
 
 digital_experience %>% 
   ggplot(aes(x = as.factor(grade), y = ..prop.., group = keyword, fill = keyword)) +
@@ -109,7 +150,7 @@ digital_experience <- digital_experience %>% select(-keyword)
 
 ## negative comments
 digital_experience %>%
-  filter(grade > 2) %>%
+  filter(grade > 4) %>%
   sample_n(5) %>%
   pull(text)
 
@@ -210,6 +251,7 @@ final_lasso %>%
     Variable = str_remove(Variable, "tfidf_text_"),
     Variable = fct_reorder(Variable, Importance)
   ) %>%
+  filter(str_length(Variable) > 4, Importance > 0.01) %>% 
   ggplot(aes(x = Importance, y = Variable, fill = Sign)) +
   geom_col(show.legend = FALSE) +
   facet_wrap(~Sign, scales = "free") +
